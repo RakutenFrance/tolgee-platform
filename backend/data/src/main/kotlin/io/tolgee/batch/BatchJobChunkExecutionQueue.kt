@@ -70,7 +70,10 @@ class BatchJobChunkExecutionQueue(
         .setHint(
           "jakarta.persistence.lock.timeout",
           LockOptions.SKIP_LOCKED,
-        ).resultList
+        )
+        // Limit to get pending batches faster
+        .setMaxResults(1_000)
+        .resultList
 
     if (data.size > 0) {
       logger.debug("Attempt to add ${data.size} items to queue ${System.identityHashCode(this)}")
