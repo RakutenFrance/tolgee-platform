@@ -53,7 +53,10 @@ class BatchJobChunkExecutionQueue(
     populateQueue()
   }
 
-  @Scheduled(fixedDelay = 60000)
+  @Scheduled(
+    fixedDelay = 60_000L,
+    initialDelayString = "#{T(java.lang.Math).abs(T(java.net.InetAddress).getLocalHost().getHostName().hashCode()) % 30 * 1000}"
+  )
   fun populateQueue() {
     logger.debug("Running scheduled populate queue")
     val data =
