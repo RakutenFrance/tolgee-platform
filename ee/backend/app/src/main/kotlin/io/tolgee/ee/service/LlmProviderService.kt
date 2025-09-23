@@ -1,5 +1,6 @@
 package io.tolgee.ee.service
 
+import io.micrometer.core.annotation.Timed
 import io.tolgee.component.CurrentDateProvider
 import io.tolgee.configuration.tolgee.InternalProperties
 import io.tolgee.configuration.tolgee.machineTranslation.LlmProviderInterface
@@ -151,6 +152,11 @@ class LlmProviderService(
     throw FailedDependencyException(Message.LLM_PROVIDER_ERROR, listOf(lastError!!.message), lastError)
   }
 
+
+  @Timed(
+    value = "tolgee.llm.provider.call",
+    description = "Time taken to call LLM provider service"
+  )
   fun callProvider(
     organizationId: Long,
     provider: String,
