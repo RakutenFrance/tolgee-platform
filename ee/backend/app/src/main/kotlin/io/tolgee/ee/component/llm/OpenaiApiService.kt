@@ -2,6 +2,7 @@ package io.tolgee.ee.component.llm
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.micrometer.core.annotation.Timed
 import io.tolgee.configuration.tolgee.machineTranslation.LlmProviderInterface
 import io.tolgee.dtos.LlmParams
 import io.tolgee.dtos.PromptResult
@@ -26,6 +27,10 @@ import org.springframework.web.client.RestTemplate
 class OpenaiApiService(private val jacksonObjectMapper: ObjectMapper) : AbstractLlmApiService(), Logging {
   override fun defaultAttempts(): List<Int> = listOf(30)
 
+  @Timed(
+    value = "tolgee.llm.openai.translate",
+    description = "Time taken to translate text using OpenAI API"
+  )
   override fun translate(
     params: LlmParams,
     config: LlmProviderInterface,
