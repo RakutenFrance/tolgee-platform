@@ -1,5 +1,6 @@
 package io.tolgee.configuration
 
+import io.micrometer.core.aop.TimedAspect
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
@@ -11,5 +12,10 @@ class MetricsConfiguration() {
   @Bean
   fun meterRegistry(): MeterRegistry {
     return PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+  }
+
+  @Bean
+  fun timedAspect(meterRegistry: MeterRegistry): TimedAspect {
+    return TimedAspect(meterRegistry)
   }
 }
