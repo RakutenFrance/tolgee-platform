@@ -1,5 +1,6 @@
 package io.tolgee.api.v2.controllers.suggestion
 
+import io.micrometer.core.annotation.Timed
 import io.tolgee.constants.Message
 import io.tolgee.constants.MtServiceType
 import io.tolgee.dtos.cacheable.LanguageDto
@@ -29,6 +30,10 @@ class MachineTranslationSuggestionFacade(
   private val applicationContext: ApplicationContext,
   private val streamingResponseBodyProvider: StreamingResponseBodyProvider,
 ) {
+  @Timed(
+    value = "tolgee.mt.suggestion.sync",
+    description = "Time taken to get synchronous machine translation suggestions"
+  )
   fun suggestSync(dto: SuggestRequestDto): SuggestResultModel {
     val targetLanguage = dto.targetLanguage
 
