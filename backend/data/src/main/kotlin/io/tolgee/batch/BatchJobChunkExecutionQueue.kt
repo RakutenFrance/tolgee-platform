@@ -66,7 +66,11 @@ class BatchJobChunkExecutionQueue(
         from BatchJobChunkExecution bjce
         join bjce.batchJob bk
         where bjce.status = :executionStatus
-        order by bjce.createdAt asc, bjce.executeAfter asc, bjce.id asc
+        order by 
+          case when bk.status = 'RUNNING' then 0 else 1 end,
+          bjce.createdAt asc, 
+          bjce.executeAfter asc, 
+          bjce.id asc
         """.trimIndent(),
         BatchJobChunkExecutionDto::class.java,
       ).setParameter("executionStatus", BatchJobChunkExecutionStatus.PENDING)
