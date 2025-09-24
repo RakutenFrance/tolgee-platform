@@ -1,6 +1,7 @@
 package io.tolgee.batch
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.micrometer.core.annotation.Timed
 import io.sentry.Sentry
 import io.tolgee.Metrics
 import io.tolgee.activity.ActivityHolder
@@ -47,6 +48,10 @@ class BatchJobActionService(
   private val activityHolder: ActivityHolder,
   private val metrics: Metrics,
 ) : Logging {
+  @Timed(
+    value = "tolgee.batch.job.action.handle_item",
+    description = "Time taken to handle batch job execution items"
+  )
   suspend fun handleItem(executionItem: ExecutionQueueItem) {
     val coroutineContext = coroutineContext
     var retryExecution: BatchJobChunkExecution? = null
