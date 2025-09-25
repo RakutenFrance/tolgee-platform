@@ -2,8 +2,10 @@ package io.tolgee.api.v2.controllers
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import io.tolgee.batch.BatchJobChunkExecutionQueue
 import io.tolgee.batch.BatchJobProjectLockingManager
 import io.tolgee.batch.BatchJobService
+import io.tolgee.batch.JobCharacter
 import io.tolgee.model.batch.BatchJobStatus
 import io.tolgee.openApiDocs.OpenApiSelfHostedExtension
 import io.tolgee.security.authentication.RequiresSuperAuthentication
@@ -28,13 +30,14 @@ import org.springframework.web.bind.annotation.RestController
 @Tag(
   name = "Server Administration",
   description = "**Only for self-hosted instances** \n\n" +
-    "Management of project-level batch job locks for debugging and maintenance."
+    "Management of project-level batch job locks and queue inspection for debugging and maintenance."
 )
 @OpenApiSelfHostedExtension
 class ProjectBatchLockController(
   private val batchJobProjectLockingManager: BatchJobProjectLockingManager,
   private val batchJobService: BatchJobService,
-) : Logging {
+  private val batchJobChunkExecutionQueue: BatchJobChunkExecutionQueue,
+) : IController, Logging {
 
   @GetMapping("/project-batch-locks")
   @Operation(
@@ -113,6 +116,30 @@ class ProjectBatchLockController(
     logger.info("Removed batch lock entry for project $projectId (removed value: $removedValue)")
     return ResponseEntity.ok().build()
   }
+
+  @GetMapping("/batch-job-queue")
+  @Operation(
+    summary = "Get current batch job queue",
+    description = "Returns all chunk execution items currently in the batch job queue"
+  )
+  @RequiresSuperAuthentication
+  fun getBatchJobQueue(): CollectionModel<QueueItemModel> {
+    logger.debug("Retrieving current batch job queue")
+    
+    val queueItems = batchJobChunkExecutionQueue.getAllQueueItems()
+    val queueModels = queueItems.map { item ->
+      QueueItemModel(
+        chunkExecutionId = item.chunkExecutionId,
+        jobId = item.jobId,
+        executeAfter = item.executeAfter,
+        jobCharacter = item.jobCharacter,
+        managementErrorRetrials = item.managementErrorRetrials
+      )
+    }
+    
+    logger.debug("Retrieved ${queueModels.size} items from batch job queue")
+    return CollectionModel.of(queueModels)
+  }
 }
 
 /**
@@ -146,3 +173,14 @@ enum class LockStatus {
   /** Lock is held by a specific job (value = jobId) */
   LOCKED
 }
+
+/**
+ * Model representing a queue item for batch job chunk execution
+ */
+data class QueueItemModel(
+  val chunkExecutionId: Long,
+  val jobId: Long,
+  val executeAfter: Long?,
+  val jobCharacter: JobCharacter,
+  val managementErrorRetrials: Int
+)

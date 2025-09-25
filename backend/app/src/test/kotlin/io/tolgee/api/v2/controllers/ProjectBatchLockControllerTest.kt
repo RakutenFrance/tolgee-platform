@@ -1,7 +1,9 @@
 package io.tolgee.api.v2.controllers
 
+import io.tolgee.batch.BatchJobChunkExecutionQueue
 import io.tolgee.batch.BatchJobProjectLockingManager
 import io.tolgee.batch.BatchJobService
+import io.tolgee.batch.data.ExecutionQueueItem
 import io.tolgee.batch.data.BatchJobDto
 import io.tolgee.batch.data.BatchJobType
 import io.tolgee.development.testDataBuilder.data.AdministrationTestData
@@ -24,6 +26,9 @@ class ProjectBatchLockControllerTest : AuthorizedControllerTest() {
 
   @MockBean  
   private lateinit var batchJobService: BatchJobService
+
+  @MockBean
+  private lateinit var batchJobChunkExecutionQueue: BatchJobChunkExecutionQueue
 
   lateinit var testData: AdministrationTestData
 
@@ -95,5 +100,38 @@ class ProjectBatchLockControllerTest : AuthorizedControllerTest() {
 
     performAuthDelete("/v2/administration/project-batch-locks/123")
       .andIsOk
+  }
+
+  @Test
+  fun `GET batch-job-queue returns queue items with super auth`() {
+    val queueItems = listOf(
+      ExecutionQueueItem(
+        chunkExecutionId = 1001L,
+        jobId = 2001L,
+        executeAfter = System.currentTimeMillis(),
+        jobCharacter = io.tolgee.batch.JobCharacter.FAST,
+        managementErrorRetrials = 0
+      ),
+      ExecutionQueueItem(
+        chunkExecutionId = 1002L,
+        jobId = 2002L,
+        executeAfter = null,
+        jobCharacter = io.tolgee.batch.JobCharacter.SLOW,
+        managementErrorRetrials = 1
+      )
+    )
+    
+    whenever(batchJobChunkExecutionQueue.getAllQueueItems()).thenReturn(queueItems)
+
+    performAuthGet("/v2/administration/batch-job-queue")
+      .andIsOk
+  }
+
+  @Test
+  fun `GET batch-job-queue returns unauthorized without super auth`() {
+    // Test without admin user
+    userAccount = testData.user
+    performAuthGet("/v2/administration/batch-job-queue")
+      .andIsUnauthorized
   }
 }
