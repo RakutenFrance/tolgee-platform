@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.RestTemplate
 
-val DEFAULT_ATTEMPTS = listOf(30)
+val DEFAULT_ATTEMPTS = listOf(30, 60, 120)
 
 abstract class AbstractLlmApiService {
 
