@@ -52,4 +52,48 @@ class Metrics(
       .description("Time spent computing new distances for big meta data")
       .register(meterRegistry)
   }
+
+  fun getBatchJobLockAcquiredCounter(projectId: Long): Counter {
+    return Counter.builder("tolgee.batch.job.lock.acquired")
+      .description("Total number of batch job locks successfully acquired per project")
+      .tag("project_id", projectId.toString())
+      .register(meterRegistry)
+  }
+
+  fun getBatchJobLockRejectedCounter(projectId: Long): Counter {
+    return Counter.builder("tolgee.batch.job.lock.rejected")
+      .description("Total number of batch job locks rejected due to limits per project")
+      .tag("project_id", projectId.toString())
+      .register(meterRegistry)
+  }
+
+  fun getBatchJobLockReleasedCounter(projectId: Long): Counter {
+    return Counter.builder("tolgee.batch.job.lock.released")
+      .description("Total number of batch job locks released per project")
+      .tag("project_id", projectId.toString())
+      .register(meterRegistry)
+  }
+
+  fun getBatchJobLockCleanupCounter(projectId: Long): Counter {
+    return Counter.builder("tolgee.batch.job.lock.cleanup")
+      .description("Total number of completed jobs cleaned up from project locks")
+      .tag("project_id", projectId.toString())
+      .register(meterRegistry)
+  }
+
+  fun registerProjectLockGauge(lockManager: () -> Map<Long, Set<Long>>) {
+    Gauge.builder("tolgee.batch.job.lock.active_projects", lockManager) { lockMap ->
+      lockMap().size.toDouble()
+    }
+      .description("Number of projects with active batch job locks")
+      .register(meterRegistry)
+  }
+
+  fun registerTotalActiveLocksGauge(lockManager: () -> Map<Long, Set<Long>>) {
+    Gauge.builder("tolgee.batch.job.lock.active_total", lockManager) { lockMap ->
+      lockMap().values.sumOf { it.size }.toDouble()
+    }
+      .description("Total number of active batch job locks across all projects")
+      .register(meterRegistry)
+  }
 }

@@ -2,6 +2,7 @@ package io.tolgee.batch
 
 import io.mockk.every
 import io.mockk.mockk
+import io.tolgee.Metrics
 import io.tolgee.component.UsingRedisProvider
 import io.tolgee.configuration.tolgee.BatchProperties
 import org.assertj.core.api.Assertions.assertThat
@@ -16,6 +17,7 @@ class BatchJobProjectLockingManagerMigrationTest {
   private lateinit var batchProperties: BatchProperties
   private lateinit var redissonClient: RedissonClient
   private lateinit var usingRedisProvider: UsingRedisProvider
+  private lateinit var metrics: Metrics
   private lateinit var mockNewFormatMap: RMap<Long, Set<Long>>
   private lateinit var mockOldFormatMap: RMap<Long, Long?>
   private lateinit var lockManager: BatchJobProjectLockingManager
@@ -26,6 +28,7 @@ class BatchJobProjectLockingManagerMigrationTest {
     batchProperties = BatchProperties()
     redissonClient = mockk()
     usingRedisProvider = mockk()
+    metrics = mockk(relaxed = true)
     mockNewFormatMap = mockk()
     mockOldFormatMap = mockk()
 
@@ -39,7 +42,8 @@ class BatchJobProjectLockingManagerMigrationTest {
       batchJobService = batchJobService,
       batchProperties = batchProperties,
       redissonClient = redissonClient,
-      usingRedisProvider = usingRedisProvider
+      usingRedisProvider = usingRedisProvider,
+      metrics = metrics
     )
   }
 

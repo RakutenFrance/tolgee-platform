@@ -2,6 +2,7 @@ package io.tolgee.batch
 
 import io.mockk.every
 import io.mockk.mockk
+import io.tolgee.Metrics
 import io.tolgee.batch.data.BatchJobDto
 import io.tolgee.component.UsingRedisProvider
 import io.tolgee.configuration.tolgee.BatchProperties
@@ -18,6 +19,7 @@ class BatchJobProjectLockingManagerConcurrentTest {
   private lateinit var batchProperties: BatchProperties
   private lateinit var redissonClient: RedissonClient
   private lateinit var usingRedisProvider: UsingRedisProvider
+  private lateinit var metrics: Metrics
   private lateinit var lockManager: BatchJobProjectLockingManager
 
   private val projectId = 1L
@@ -32,6 +34,7 @@ class BatchJobProjectLockingManagerConcurrentTest {
     batchProperties = BatchProperties()
     redissonClient = mockk()
     usingRedisProvider = mockk()
+    metrics = mockk(relaxed = true)
 
     // Use local storage for testing (no Redis)
     every { usingRedisProvider.areWeUsingRedis } returns false
@@ -49,7 +52,8 @@ class BatchJobProjectLockingManagerConcurrentTest {
       batchJobService = batchJobService,
       batchProperties = batchProperties,
       redissonClient = redissonClient,
-      usingRedisProvider = usingRedisProvider
+      usingRedisProvider = usingRedisProvider,
+      metrics = metrics
     )
 
     // Clear any existing locks
@@ -202,6 +206,7 @@ class BatchJobProjectLockingManagerConcurrentTest {
     assertThat(lockManager.getLockedJobsForProject(projectId)).containsExactly(job1.id)
     assertThat(lockManager.getLockedJobsForProject(project2Id)).containsExactly(job5.id)
   }
+
 
   private fun createMockJobDto(id: Long, projectId: Long, status: BatchJobStatus): BatchJobDto {
     return BatchJobDto(

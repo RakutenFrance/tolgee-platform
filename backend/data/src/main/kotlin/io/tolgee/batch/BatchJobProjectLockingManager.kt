@@ -1,10 +1,12 @@
 package io.tolgee.batch
 
+import io.tolgee.Metrics
 import io.tolgee.batch.data.BatchJobDto
 import io.tolgee.component.UsingRedisProvider
 import io.tolgee.configuration.tolgee.BatchProperties
 import io.tolgee.util.Logging
 import io.tolgee.util.logger
+import jakarta.annotation.PostConstruct
 import org.redisson.api.RMap
 import org.redisson.api.RedissonClient
 import org.springframework.context.annotation.Lazy
@@ -25,11 +27,19 @@ class BatchJobProjectLockingManager(
   @Lazy
   private val redissonClient: RedissonClient,
   private val usingRedisProvider: UsingRedisProvider,
+  private val metrics: Metrics,
 ) : Logging {
   companion object {
     private val localProjectLocks by lazy {
       ConcurrentHashMap<Long, Set<Long>>()
     }
+  }
+
+  @PostConstruct
+  fun initializeMetrics() {
+    // Register gauge metrics for monitoring lock state
+    metrics.registerProjectLockGauge { getMap() }
+    metrics.registerTotalActiveLocksGauge { getMap() }
   }
 
   fun canLockJobForProject(batchJobId: Long): Boolean {
@@ -42,11 +52,23 @@ class BatchJobProjectLockingManager(
 
   private fun tryLockJobForProject(jobDto: BatchJobDto): Boolean {
     logger.debug("Trying to lock job ${jobDto.id} for project ${jobDto.projectId}")
-    return if (usingRedisProvider.areWeUsingRedis) {
+    val lockAcquired = if (usingRedisProvider.areWeUsingRedis) {
       tryLockWithRedisson(jobDto)
     } else {
       tryLockLocal(jobDto)
     }
+    
+    // Track metrics with project ID tag
+    val projectId = jobDto.projectId
+    if (lockAcquired && projectId != null) {
+      metrics.getBatchJobLockAcquiredCounter(projectId).increment()
+      logger.debug("Lock acquired for job ${jobDto.id} project $projectId")
+    } else if (!lockAcquired && projectId != null) {
+      metrics.getBatchJobLockRejectedCounter(projectId).increment()
+      logger.debug("Lock rejected for job ${jobDto.id} project $projectId - limit reached")
+    }
+    
+    return lockAcquired
   }
 
   fun unlockJobForProject(
@@ -54,16 +76,32 @@ class BatchJobProjectLockingManager(
     jobId: Long,
   ) {
     projectId ?: return
-    getMap().compute(projectId) { _, lockedJobIds ->
-      logger.debug("Unlocking job: $jobId for project $projectId")
-      val currentJobs = lockedJobIds ?: emptySet()
-      if (currentJobs.contains(jobId)) {
-        val updatedJobs = currentJobs - jobId
-        logger.debug("Unlocked job: $jobId for project $projectId. Remaining jobs: $updatedJobs")
-        return@compute if (updatedJobs.isEmpty()) emptySet() else updatedJobs
+    if (usingRedisProvider.areWeUsingRedis) {
+      computeWithMigration(projectId) { _, lockedJobIds ->
+        logger.debug("Unlocking job: $jobId for project $projectId")
+        val currentJobs = lockedJobIds ?: emptySet()
+        if (currentJobs.contains(jobId)) {
+          val updatedJobs = currentJobs - jobId
+          logger.debug("Unlocked job: $jobId for project $projectId. Remaining jobs: $updatedJobs")
+          metrics.getBatchJobLockReleasedCounter(projectId).increment()
+          return@computeWithMigration if (updatedJobs.isEmpty()) emptySet() else updatedJobs
+        }
+        logger.debug("Job: $jobId for project $projectId is not locked")
+        return@computeWithMigration currentJobs
       }
-      logger.debug("Job: $jobId for project $projectId is not locked")
-      return@compute currentJobs
+    } else {
+      localProjectLocks.compute(projectId) { _, lockedJobIds ->
+        logger.debug("Unlocking job: $jobId for project $projectId")
+        val currentJobs = lockedJobIds ?: emptySet()
+        if (currentJobs.contains(jobId)) {
+          val updatedJobs = currentJobs - jobId
+          logger.debug("Unlocked job: $jobId for project $projectId. Remaining jobs: $updatedJobs")
+          metrics.getBatchJobLockReleasedCounter(projectId).increment()
+          return@compute if (updatedJobs.isEmpty()) emptySet() else updatedJobs
+        }
+        logger.debug("Job: $jobId for project $projectId is not locked")
+        return@compute currentJobs
+      }
     }
   }
 
@@ -76,11 +114,34 @@ class BatchJobProjectLockingManager(
 
   private fun tryLockWithRedisson(batchJobDto: BatchJobDto): Boolean {
     val projectId = batchJobDto.projectId ?: return true
-    val computed =
-      getRedissonProjectLocks().compute(projectId) { _, value ->
-        computeFnBody(batchJobDto, value)
-      }
+    val computed = computeWithMigration(projectId) { _, value ->
+      computeFnBody(batchJobDto, value)
+    }
     return computed?.contains(batchJobDto.id) ?: false
+  }
+
+  private fun computeWithMigration(
+    projectId: Long, 
+    remappingFunction: (Long, Set<Long>?) -> Set<Long>?
+  ): Set<Long>? {
+    return try {
+      // Try to use new format directly
+      getRedissonProjectLocks().compute(projectId) { key, currentValue ->
+        // If current value is null, check for old format data
+        val effectiveCurrentValue = if (currentValue == null) {
+          val oldFormatValue = getLockedJobsFromRedisOldFormat(key)
+          if (oldFormatValue.isNotEmpty()) {
+            logger.warn("Detected old format data during write operation for project $key, migrating: $oldFormatValue")
+            oldFormatValue
+          } else null
+        } else currentValue
+        
+        remappingFunction(key, effectiveCurrentValue)
+      }
+    } catch (e: Exception) {
+      logger.error("Failed to perform compute operation with migration for project $projectId", e)
+      null
+    }
   }
 
   fun getLockedJobsForProject(projectId: Long): Set<Long> {
@@ -95,9 +156,25 @@ class BatchJobProjectLockingManager(
       // Try to read as new format (Set<Long>)
       return getRedissonProjectLocks()[projectId] ?: emptySet()
     } catch (e: Exception) {
-      // Fallback to old format (Long?)
-      logger.debug("Failed to read Redis value as Set<Long> for project $projectId, trying old format", e)
-      return getLockedJobsFromRedisOldFormat(projectId)
+      // Fallback to old format (Long?) and migrate
+      logger.warn(
+        "Failed to read Redis batch lock as Set<Long> for project $projectId, falling back to old Long? format. " +
+        "This indicates old data exists and will be migrated on next write operation. " +
+        "Error: ${e.message}", e
+      )
+      val oldValue = getLockedJobsFromRedisOldFormat(projectId)
+      
+      // Proactively migrate the old value to new format
+      if (oldValue.isNotEmpty()) {
+        try {
+          getRedissonProjectLocks()[projectId] = oldValue
+          logger.warn("Successfully migrated project $projectId from old format to new format: $oldValue")
+        } catch (migrationError: Exception) {
+          logger.error("Failed to migrate project $projectId from old to new format", migrationError)
+        }
+      }
+      
+      return oldValue
     }
   }
 
@@ -182,7 +259,9 @@ class BatchJobProjectLockingManager(
     }.toSet()
 
     if (stillRunningJobs.size != currentJobs.size) {
+      val cleanedUpCount = currentJobs.size - stillRunningJobs.size
       logger.debug("Cleaned up completed jobs for project $projectId. Before: $currentJobs, After: $stillRunningJobs")
+      repeat(cleanedUpCount) { metrics.getBatchJobLockCleanupCounter(projectId).increment() }
     }
 
     return stillRunningJobs

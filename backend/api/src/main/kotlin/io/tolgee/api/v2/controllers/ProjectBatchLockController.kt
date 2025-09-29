@@ -49,14 +49,13 @@ class ProjectBatchLockController(
     logger.debug("Retrieving all project batch locks")
 
     val locks = batchJobProjectLockingManager.getMap()
-    val lockModels = locks.map { (projectId, lockedJobIds) ->
+    val lockModels = locks.entries.map { (projectId, lockedJobIds) ->
       val lockStatus = when {
-        lockedJobIds == null -> LockStatus.UNINITIALIZED
         lockedJobIds.isEmpty() -> LockStatus.UNLOCKED
         else -> LockStatus.LOCKED
       }
 
-      val jobInfos = lockedJobIds?.mapNotNull { jobId ->
+      val jobInfos = lockedJobIds.mapNotNull { jobId ->
         try {
           val jobDto = batchJobService.getJobDto(jobId)
           JobInfo(
@@ -69,11 +68,11 @@ class ProjectBatchLockController(
           logger.warn("Could not retrieve job info for locked job $jobId in project $projectId", e)
           null
         }
-      } ?: emptyList()
+      }
 
       ProjectLockModel(
         projectId = projectId,
-        lockedJobIds = lockedJobIds ?: emptySet(),
+        lockedJobIds = lockedJobIds,
         lockStatus = lockStatus,
         jobInfos = jobInfos
       )
@@ -164,13 +163,13 @@ data class JobInfo(
  * Status of the project lock
  */
 enum class LockStatus {
-  /** Lock is explicitly cleared (value = 0L) */
+  /** Project lock is explicitly cleared (value = empty set) */
   UNLOCKED,
 
-  /** Lock has never been initialized (value = null) */
+  /** Project has never been initialized (not present in map) */
   UNINITIALIZED,
 
-  /** Lock is held by a specific job (value = jobId) */
+  /** Project lock is held by one or more jobs (value = set of job IDs) */
   LOCKED
 }
 
