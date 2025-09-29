@@ -8,4 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 class BatchProperties {
   @DocProperty(description = "How many parallel jobs can be run at once on single Tolgee instance")
   var concurrency: Int = 1
+
+  @DocProperty(description = "Maximum concurrent batch jobs per project (default: 1 for backward compatibility)")
+  var maxConcurrentJobsPerProject: Int = 1
 }
