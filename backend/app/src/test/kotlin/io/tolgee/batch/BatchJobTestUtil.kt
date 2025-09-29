@@ -305,7 +305,8 @@ class BatchJobTestUtil(
   }
 
   fun assertJobUnlocked() {
-    batchJobProjectLockingManager.getLockedForProject(testData.projectBuilder.self.id).assert.isEqualTo(0L)
+    val lockedJobs = batchJobProjectLockingManager.getLockedJobsForProject(testData.projectBuilder.self.id)
+    lockedJobs.assert.isEmpty()
   }
 
   fun getExecutions(jobIds: List<Long>): Map<Long, List<BatchJobChunkExecution>> =
@@ -383,7 +384,8 @@ class BatchJobTestUtil(
   }
 
   fun verifyJobLocked(job: BatchJob) {
-    batchJobProjectLockingManager.getLockedForProject(testData.projectBuilder.self.id).assert.isEqualTo(job.id)
+    val lockedJobs = batchJobProjectLockingManager.getLockedJobsForProject(testData.projectBuilder.self.id)
+    lockedJobs.assert.contains(job.id)
   }
 
   fun verifiedTriedToLockJob(jobId: Long) {
@@ -409,7 +411,8 @@ class BatchJobTestUtil(
 
   fun verifyProjectJobLockReleased() {
     waitFor(pollTime = 200, timeout = 1000) {
-      batchJobProjectLockingManager.getLockedForProject(testData.projectBuilder.self.id) == 0L
+      val lockedJobs = batchJobProjectLockingManager.getLockedJobsForProject(testData.projectBuilder.self.id)
+      lockedJobs.isEmpty()
     }
   }
 
