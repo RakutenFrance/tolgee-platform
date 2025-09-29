@@ -152,7 +152,6 @@ class LlmProviderService(
     throw FailedDependencyException(Message.LLM_PROVIDER_ERROR, listOf(lastError!!.message), lastError)
   }
 
-
   @Timed(
     value = "tolgee.llm.provider.call",
     description = "Time taken to call LLM provider service"

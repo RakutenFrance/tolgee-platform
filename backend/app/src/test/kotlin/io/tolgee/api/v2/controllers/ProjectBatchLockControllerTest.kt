@@ -9,14 +9,12 @@ import io.tolgee.batch.data.BatchJobType
 import io.tolgee.development.testDataBuilder.data.AdministrationTestData
 import io.tolgee.fixtures.andIsOk
 import io.tolgee.fixtures.andIsUnauthorized
-import io.tolgee.model.UserAccount
 import io.tolgee.model.batch.BatchJobStatus
 import io.tolgee.testing.AuthorizedControllerTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.whenever
 import org.springframework.boot.test.mock.mockito.MockBean
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import java.util.concurrent.ConcurrentHashMap
 
 class ProjectBatchLockControllerTest : AuthorizedControllerTest() {
@@ -24,7 +22,7 @@ class ProjectBatchLockControllerTest : AuthorizedControllerTest() {
   @MockBean
   private lateinit var batchJobProjectLockingManager: BatchJobProjectLockingManager
 
-  @MockBean  
+  @MockBean
   private lateinit var batchJobService: BatchJobService
 
   @MockBean
@@ -50,13 +48,13 @@ class ProjectBatchLockControllerTest : AuthorizedControllerTest() {
   @Test
   fun `GET project-batch-locks returns locks with super auth`() {
     val testLocks = ConcurrentHashMap<Long, Long?>().apply {
-      put(1L, 123L)  // Project 1 locked to job 123
-      put(2L, 0L)    // Project 2 explicitly unlocked  
-      put(3L, null)  // Project 3 uninitialized
+      put(1L, 123L) // Project 1 locked to job 123
+      put(2L, 0L) // Project 2 explicitly unlocked
+      put(3L, null) // Project 3 uninitialized
     }
-    
+
     whenever(batchJobProjectLockingManager.getMap()).thenReturn(testLocks)
-    
+
     // Mock job info for locked job
     val mockJobDto = BatchJobDto(
       id = 123L,
@@ -75,7 +73,7 @@ class ProjectBatchLockControllerTest : AuthorizedControllerTest() {
       debouncingKey = null,
       createdAt = System.currentTimeMillis()
     )
-    
+
     whenever(batchJobService.getJobDto(123L)).thenReturn(mockJobDto)
 
     performAuthGet("/v2/administration/project-batch-locks")
@@ -120,7 +118,7 @@ class ProjectBatchLockControllerTest : AuthorizedControllerTest() {
         managementErrorRetrials = 1
       )
     )
-    
+
     whenever(batchJobChunkExecutionQueue.getAllQueueItems()).thenReturn(queueItems)
 
     performAuthGet("/v2/administration/batch-job-queue")
