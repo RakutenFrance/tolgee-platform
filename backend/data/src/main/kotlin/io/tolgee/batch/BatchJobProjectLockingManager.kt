@@ -85,9 +85,35 @@ class BatchJobProjectLockingManager(
 
   fun getLockedJobsForProject(projectId: Long): Set<Long> {
     if (usingRedisProvider.areWeUsingRedis) {
-      return getRedissonProjectLocks()[projectId] ?: emptySet()
+      return getLockedJobsFromRedisWithMigration(projectId)
     }
     return localProjectLocks[projectId] ?: emptySet()
+  }
+
+  private fun getLockedJobsFromRedisWithMigration(projectId: Long): Set<Long> {
+    try {
+      // Try to read as new format (Set<Long>)
+      return getRedissonProjectLocks()[projectId] ?: emptySet()
+    } catch (e: Exception) {
+      // Fallback to old format (Long?)
+      logger.debug("Failed to read Redis value as Set<Long> for project $projectId, trying old format", e)
+      return getLockedJobsFromRedisOldFormat(projectId)
+    }
+  }
+
+  private fun getLockedJobsFromRedisOldFormat(projectId: Long): Set<Long> {
+    try {
+      val oldFormatMap: RMap<Long, Long?> = redissonClient.getMap("project_batch_job_locks")
+      val oldValue = oldFormatMap[projectId]
+      return when (oldValue) {
+        null -> emptySet() // Uninitialized or explicitly unlocked (0L) - both treated as empty
+        0L -> emptySet()   // Explicitly unlocked
+        else -> setOf(oldValue) // Single job ID
+      }
+    } catch (e: Exception) {
+      logger.warn("Failed to read Redis value in both new and old formats for project $projectId", e)
+      return emptySet()
+    }
   }
 
 
@@ -222,6 +248,7 @@ class BatchJobProjectLockingManager(
   private fun getRedissonProjectLocks(): RMap<Long, Set<Long>> {
     return redissonClient.getMap("project_batch_job_locks")
   }
+
 
   fun getLockedJobIds(): Set<Long> {
     return getMap().values.flatten().toSet()
