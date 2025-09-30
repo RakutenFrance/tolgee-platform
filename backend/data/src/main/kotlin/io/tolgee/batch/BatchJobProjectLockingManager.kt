@@ -330,6 +330,19 @@ class BatchJobProjectLockingManager(
 
 
   fun getLockedJobIds(): Set<Long> {
-    return getMap().values.flatten().toSet()
+    return if (usingRedisProvider.areWeUsingRedis) {
+      // Use migration-safe approach for Redis
+      try {
+        getMap().values.flatten().toSet()
+      } catch (e: ClassCastException) {
+        // Fallback to old format if new format fails
+        logger.warn("Failed to read Redis locks as Set<Long>, falling back to old Long? format", e)
+        val oldFormatMap: RMap<Long, Long?> = redissonClient.getMap("project_batch_job_locks")
+        oldFormatMap.values.filterNotNull().filter { it != 0L }.toSet()
+      }
+    } else {
+      // Local map is always new format
+      localProjectLocks.values.flatten().toSet()
+    }
   }
 }
