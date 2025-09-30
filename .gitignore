@@ -79,3 +79,10 @@ ngrok.local.yml
 # IDEs and tools
 .cursorrules
 .cursorignore
+
+# Claude Code documentation and analysis files
+CLAUDE.md
+BATCH_JOB_ANALYSIS.md
+FORK-RELEASE.md
+INDEXES.md
+RELEASE.png
