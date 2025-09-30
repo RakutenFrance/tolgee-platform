@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
+private const val REDIS_PROJECT_BATCH_JOB_LOCKS_KEY = "project_batch_job_locks"
+
 /**
  * Manages concurrent job execution limits per project.
  * Supports configurable number of concurrent jobs per project (default: 1 for backward compatibility).
@@ -180,7 +182,7 @@ class BatchJobProjectLockingManager(
 
   private fun getLockedJobsFromRedisOldFormat(projectId: Long): Set<Long> {
     try {
-      val oldFormatMap: RMap<Long, Long?> = redissonClient.getMap("project_batch_job_locks")
+      val oldFormatMap: RMap<Long, Long?> = redissonClient.getMap(REDIS_PROJECT_BATCH_JOB_LOCKS_KEY)
       val oldValue = oldFormatMap[projectId]
       return when (oldValue) {
         null -> emptySet() // Uninitialized or explicitly unlocked (0L) - both treated as empty
@@ -325,7 +327,7 @@ class BatchJobProjectLockingManager(
 
 
   private fun getRedissonProjectLocks(): RMap<Long, Set<Long>> {
-    return redissonClient.getMap("project_batch_job_locks")
+    return redissonClient.getMap(REDIS_PROJECT_BATCH_JOB_LOCKS_KEY)
   }
 
 
@@ -333,12 +335,14 @@ class BatchJobProjectLockingManager(
     return if (usingRedisProvider.areWeUsingRedis) {
       // Use migration-safe approach for Redis
       try {
+        // Try new format first
         getMap().values.flatten().toSet()
       } catch (e: ClassCastException) {
-        // Fallback to old format if new format fails
+        // Fallback to old format using encapsulated method
         logger.warn("Failed to read Redis locks as Set<Long>, falling back to old Long? format", e)
-        val oldFormatMap: RMap<Long, Long?> = redissonClient.getMap("project_batch_job_locks")
-        oldFormatMap.values.filterNotNull().filter { it != 0L }.toSet()
+        // Read old format data with proper typing
+        val oldFormatMap: RMap<Long, Long?> = redissonClient.getMap(REDIS_PROJECT_BATCH_JOB_LOCKS_KEY)
+        return oldFormatMap.values.filterNotNull().filter { it != 0L }.toSet()
       }
     } else {
       // Local map is always new format
