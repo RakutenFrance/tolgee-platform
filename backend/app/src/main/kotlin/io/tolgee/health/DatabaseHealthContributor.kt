@@ -18,6 +18,7 @@ class DatabaseHealthContributor : HealthIndicator, HealthContributor {
     try {
       ds.connection.use { conn ->
         val stmt: Statement = conn.createStatement()
+        stmt.queryTimeout = 2  // 2 seconds timeout to prevent hangs
         stmt.execute("select name from user_account limit 1")
       }
     } catch (ex: SQLException) {
