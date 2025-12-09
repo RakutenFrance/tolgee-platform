@@ -85,4 +85,56 @@ class GlobalUserRateLimitFilterTest {
 
     assertDoesNotThrow { rateLimitFilter.doFilter(req, res, chain) }
   }
+
+  @Test
+  fun `it does not rate limit actuator health endpoint`() {
+    val req = MockHttpServletRequest("GET", "/actuator/health")
+    val res = MockHttpServletResponse()
+    val chain = MockFilterChain()
+
+    Mockito.`when`(rateLimitService.consumeGlobalUserRateLimitPolicy(any(), any()))
+      .thenThrow(RateLimitedException(1000, true))
+
+    assertDoesNotThrow { rateLimitFilter.doFilter(req, res, chain) }
+    Mockito.verify(rateLimitService, Mockito.never()).consumeGlobalUserRateLimitPolicy(any(), any())
+  }
+
+  @Test
+  fun `it does not rate limit actuator prometheus endpoint`() {
+    val req = MockHttpServletRequest("GET", "/actuator/prometheus")
+    val res = MockHttpServletResponse()
+    val chain = MockFilterChain()
+
+    Mockito.`when`(rateLimitService.consumeGlobalUserRateLimitPolicy(any(), any()))
+      .thenThrow(RateLimitedException(1000, true))
+
+    assertDoesNotThrow { rateLimitFilter.doFilter(req, res, chain) }
+    Mockito.verify(rateLimitService, Mockito.never()).consumeGlobalUserRateLimitPolicy(any(), any())
+  }
+
+  @Test
+  fun `it does rate limit non-actuator endpoints`() {
+    val req = MockHttpServletRequest("GET", "/api/v2/projects")
+    val res = MockHttpServletResponse()
+    val chain = MockFilterChain()
+
+    Mockito.`when`(rateLimitService.consumeGlobalUserRateLimitPolicy(any(), any()))
+      .thenThrow(RateLimitedException(1000, true))
+
+    assertThrows<RateLimitedException> { rateLimitFilter.doFilter(req, res, chain) }
+    Mockito.verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalUserRateLimitPolicy(req, userAccount.id)
+  }
+
+  @Test
+  fun `it does rate limit fake actuator paths that are not real endpoints`() {
+    val req = MockHttpServletRequest("GET", "/api/actuator/fake")
+    val res = MockHttpServletResponse()
+    val chain = MockFilterChain()
+
+    Mockito.`when`(rateLimitService.consumeGlobalUserRateLimitPolicy(any(), any()))
+      .thenThrow(RateLimitedException(1000, true))
+
+    assertThrows<RateLimitedException> { rateLimitFilter.doFilter(req, res, chain) }
+    Mockito.verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalUserRateLimitPolicy(req, userAccount.id)
+  }
 }
