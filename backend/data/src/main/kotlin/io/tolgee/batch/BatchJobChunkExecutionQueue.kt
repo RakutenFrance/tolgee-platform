@@ -23,7 +23,7 @@ import org.springframework.context.event.EventListener
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.LinkedBlockingQueue
 
 @Component
 class BatchJobChunkExecutionQueue(
@@ -35,9 +35,9 @@ class BatchJobChunkExecutionQueue(
 ) : Logging, InitializingBean {
   companion object {
     /**
-     * It's static
+     * It's static. Using LinkedBlockingQueue for O(1) size() performance.
      */
-    private val queue = ConcurrentLinkedQueue<ExecutionQueueItem>()
+    private val queue = LinkedBlockingQueue<ExecutionQueueItem>()
   }
 
   @EventListener

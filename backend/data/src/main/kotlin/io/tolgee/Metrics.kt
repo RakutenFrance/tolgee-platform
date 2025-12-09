@@ -5,13 +5,13 @@ import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import org.springframework.stereotype.Component
-import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.Queue
 
 @Component
 class Metrics(
   private val meterRegistry: MeterRegistry,
 ) {
-  fun registerJobQueue(queue: ConcurrentLinkedQueue<*>) {
+  fun registerJobQueue(queue: Queue<*>) {
     Gauge.builder("tolgee.batch.job.execution.queue.size", queue) { it.size.toDouble() }
       .description("Size of the queue of batch job executions")
       .register(meterRegistry)
