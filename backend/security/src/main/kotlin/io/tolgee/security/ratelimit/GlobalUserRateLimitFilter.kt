@@ -41,6 +41,10 @@ class GlobalUserRateLimitFilter(
   }
 
   override fun shouldNotFilter(request: HttpServletRequest): Boolean {
-    return request.method == "OPTIONS"
+    return request.method == "OPTIONS" || isActuatorEndpoint(request)
+  }
+
+  private fun isActuatorEndpoint(request: HttpServletRequest): Boolean {
+    return request.requestURI?.startsWith("/actuator/") == true
   }
 }

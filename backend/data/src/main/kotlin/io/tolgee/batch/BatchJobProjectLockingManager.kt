@@ -140,7 +140,9 @@ class BatchJobProjectLockingManager(
         logger.info("Locking job ${toLock.id} for project $projectId. Active jobs before: $newLockedJobIds")
         newLockedJobIds.add(toLock.id)
       } else {
-        logger.debug("Cannot lock job ${toLock.id} for project $projectId, limit reached. Active jobs: $newLockedJobIds")
+        logger.debug(
+          "Cannot lock job ${toLock.id} for project $projectId, limit reached. Active jobs: $newLockedJobIds"
+        )
       }
       return newLockedJobIds
     }
@@ -228,5 +230,4 @@ class BatchJobProjectLockingManager(
   fun getLockedJobIds(): Set<Long> {
     return getMap().values.flatten().toSet()
   }
-
 }
