@@ -95,6 +95,11 @@ class BatchJobActionService(
         logger.debug("Job: ${it.batchJob.id} - Handling execution committed ${it.id} (standard flow)")
         progressManager.handleChunkCompletedCommitted(it)
       }
+
+      // Clear persistence context to release entities and result sets
+      // This prevents accumulation across multiple chunk executions
+      entityManager.clear()
+
       addRetryExecutionToQueue(retryExecution, jobCharacter = executionItem.jobCharacter)
     } catch (e: Throwable) {
       progressManager.rollbackSetToRunning(executionItem.chunkExecutionId, executionItem.jobId)

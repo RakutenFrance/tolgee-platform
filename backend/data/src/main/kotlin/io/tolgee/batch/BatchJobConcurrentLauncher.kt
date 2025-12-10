@@ -36,6 +36,12 @@ class BatchJobConcurrentLauncher(
    */
   val runningJobs: ConcurrentHashMap<Long, Pair<BatchJobDto, Job>> = ConcurrentHashMap()
 
+  /**
+   * Managed coroutine scope for batch job processing
+   * Created on run(), cancelled on stop()
+   */
+  private var batchJobScope: CoroutineScope? = null
+
   var pause = false
     set(value) {
       field = value
@@ -52,9 +58,17 @@ class BatchJobConcurrentLauncher(
   fun stop() {
     logger.trace("Stopping batch job launcher ${System.identityHashCode(this)}}")
     run = false
+
+    // Cancel the coroutine scope to stop all running coroutines
+    batchJobScope?.cancel()
+
     runBlocking(Dispatchers.IO) {
       masterRunJob?.join()
     }
+
+    // Clear the scope reference
+    batchJobScope = null
+
     logger.trace("Batch job launcher stopped ${System.identityHashCode(this)}")
   }
 
@@ -88,9 +102,13 @@ class BatchJobConcurrentLauncher(
   fun run() {
     run = true
     pause = false
+
+    // Create a new managed coroutine scope for this run cycle
+    batchJobScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     @Suppress("OPT_IN_USAGE")
     masterRunJob =
-      GlobalScope.launch(Dispatchers.IO) {
+      batchJobScope!!.launch {
         repeatForever {
           if (pause) {
             return@repeatForever false

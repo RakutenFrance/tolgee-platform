@@ -45,6 +45,10 @@ open class ChunkProcessingUtil(
           successfulTargets?.let {
             execution.successTargets = it
           }
+
+          // Clear persistence context to release lazy-loaded entities (previousExecutions, chunk, etc.)
+          // This prevents accumulation of entities and result sets across chunk processing
+          entityManager.clear()
         }
       }
     logger.debug("Chunk ${execution.id} executed in ${time}ms")
