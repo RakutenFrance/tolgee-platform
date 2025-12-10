@@ -83,6 +83,10 @@ class BatchJobChunkExecutionQueue(
       logger.debug("Attempt to add ${data.size} items to queue ${System.identityHashCode(this)}")
       addExecutionsToLocalQueue(data)
     }
+
+    // Clear persistence context after loading batch execution data
+    // This scheduled method runs every 60s and can load up to 1000 items
+    entityManager.clear()
   }
 
   fun addExecutionsToLocalQueue(data: List<BatchJobChunkExecutionDto>) {

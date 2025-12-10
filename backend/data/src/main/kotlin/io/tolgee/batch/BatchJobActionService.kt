@@ -116,6 +116,10 @@ class BatchJobActionService(
           Sentry.captureException(e)
         }
       }
+
+      // Clear persistence context even when outer exception occurs
+      // This prevents memory leaks when items fail and get retried
+      entityManager.clear()
     }
   }
 
