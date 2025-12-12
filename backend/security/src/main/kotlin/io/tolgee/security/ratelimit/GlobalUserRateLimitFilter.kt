@@ -20,7 +20,6 @@ import io.tolgee.security.authentication.AuthenticationFacade
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 
@@ -29,8 +28,6 @@ class GlobalUserRateLimitFilter(
   private val rateLimitService: RateLimitService,
   private val authenticationFacade: AuthenticationFacade,
 ) : OncePerRequestFilter() {
-  private val actuatorMatcher = EndpointRequest.toAnyEndpoint()
-
   override fun doFilterInternal(
     request: HttpServletRequest,
     response: HttpServletResponse,
@@ -44,6 +41,10 @@ class GlobalUserRateLimitFilter(
   }
 
   override fun shouldNotFilter(request: HttpServletRequest): Boolean {
-    return request.method == "OPTIONS" || actuatorMatcher.matches(request)
+    return request.method == "OPTIONS" || isActuatorEndpoint(request)
+  }
+
+  private fun isActuatorEndpoint(request: HttpServletRequest): Boolean {
+    return request.requestURI?.startsWith("/actuator/") == true
   }
 }

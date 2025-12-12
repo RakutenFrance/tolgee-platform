@@ -18,36 +18,35 @@ package io.tolgee.security.ratelimit
 
 import io.tolgee.dtos.cacheable.UserAccountDto
 import io.tolgee.security.authentication.AuthenticationFacade
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
 import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.springframework.mock.web.MockFilterChain
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
 
 class GlobalUserRateLimitFilterTest {
-  private val rateLimitService = Mockito.mock(RateLimitService::class.java)
-
-  private val authenticationFacade = Mockito.mock(AuthenticationFacade::class.java)
+  private lateinit var rateLimitService: RateLimitService
+  private lateinit var authenticationFacade: AuthenticationFacade
+  private lateinit var rateLimitFilter: GlobalUserRateLimitFilter
 
   private val userAccount = Mockito.mock(UserAccountDto::class.java)
 
-  private val rateLimitFilter = GlobalUserRateLimitFilter(rateLimitService, authenticationFacade)
-
   @BeforeEach
   fun setupMocks() {
+    rateLimitService = mock()
+    authenticationFacade = mock()
+    rateLimitFilter = GlobalUserRateLimitFilter(rateLimitService, authenticationFacade)
+
     Mockito.`when`(authenticationFacade.isAuthenticated).thenReturn(true)
     Mockito.`when`(authenticationFacade.authenticatedUser).thenReturn(userAccount)
     Mockito.`when`(userAccount.id).thenReturn(1337L)
-  }
-
-  @AfterEach
-  fun resetMocks() {
-    Mockito.reset(rateLimitService, authenticationFacade)
   }
 
   @Test
@@ -58,7 +57,7 @@ class GlobalUserRateLimitFilterTest {
 
     assertDoesNotThrow { rateLimitFilter.doFilter(req, res, chain) }
 
-    Mockito.verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalUserRateLimitPolicy(req, userAccount.id)
+    verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalUserRateLimitPolicy(req, userAccount.id)
   }
 
   @Test
@@ -74,7 +73,7 @@ class GlobalUserRateLimitFilterTest {
   }
 
   @Test
-  fun `it does rate limit if request is OPTIONS`() {
+  fun `it does not rate limit if request is OPTIONS`() {
     val req = MockHttpServletRequest()
     val res = MockHttpServletResponse()
     val chain = MockFilterChain()
@@ -96,7 +95,7 @@ class GlobalUserRateLimitFilterTest {
       .thenThrow(RateLimitedException(1000, true))
 
     assertDoesNotThrow { rateLimitFilter.doFilter(req, res, chain) }
-    Mockito.verify(rateLimitService, Mockito.never()).consumeGlobalUserRateLimitPolicy(any(), any())
+    verify(rateLimitService, never()).consumeGlobalUserRateLimitPolicy(any(), any())
   }
 
   @Test
@@ -109,7 +108,7 @@ class GlobalUserRateLimitFilterTest {
       .thenThrow(RateLimitedException(1000, true))
 
     assertDoesNotThrow { rateLimitFilter.doFilter(req, res, chain) }
-    Mockito.verify(rateLimitService, Mockito.never()).consumeGlobalUserRateLimitPolicy(any(), any())
+    verify(rateLimitService, never()).consumeGlobalUserRateLimitPolicy(any(), any())
   }
 
   @Test
@@ -122,7 +121,7 @@ class GlobalUserRateLimitFilterTest {
       .thenThrow(RateLimitedException(1000, true))
 
     assertThrows<RateLimitedException> { rateLimitFilter.doFilter(req, res, chain) }
-    Mockito.verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalUserRateLimitPolicy(req, userAccount.id)
+    verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalUserRateLimitPolicy(req, userAccount.id)
   }
 
   @Test
@@ -135,6 +134,6 @@ class GlobalUserRateLimitFilterTest {
       .thenThrow(RateLimitedException(1000, true))
 
     assertThrows<RateLimitedException> { rateLimitFilter.doFilter(req, res, chain) }
-    Mockito.verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalUserRateLimitPolicy(req, userAccount.id)
+    verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalUserRateLimitPolicy(req, userAccount.id)
   }
 }

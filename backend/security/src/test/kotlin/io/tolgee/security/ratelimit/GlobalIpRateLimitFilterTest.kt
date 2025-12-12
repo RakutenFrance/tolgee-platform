@@ -17,32 +17,31 @@
 package io.tolgee.security.ratelimit
 
 import io.tolgee.security.authentication.AuthenticationFacade
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
 import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.springframework.mock.web.MockFilterChain
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
 
 class GlobalIpRateLimitFilterTest {
-  private val rateLimitService = Mockito.mock(RateLimitService::class.java)
-
-  private val authenticationFacade = Mockito.mock(AuthenticationFacade::class.java)
-
-  private val rateLimitFilter = GlobalIpRateLimitFilter(rateLimitService, authenticationFacade)
+  private lateinit var rateLimitService: RateLimitService
+  private lateinit var authenticationFacade: AuthenticationFacade
+  private lateinit var rateLimitFilter: GlobalIpRateLimitFilter
 
   @BeforeEach
   fun setupMocks() {
-    Mockito.`when`(authenticationFacade.isAuthenticated).thenReturn(false)
-  }
+    rateLimitService = mock()
+    authenticationFacade = mock()
+    rateLimitFilter = GlobalIpRateLimitFilter(rateLimitService, authenticationFacade)
 
-  @AfterEach
-  fun resetMocks() {
-    Mockito.reset(rateLimitService)
+    Mockito.`when`(authenticationFacade.isAuthenticated).thenReturn(false)
   }
 
   @Test
@@ -53,7 +52,7 @@ class GlobalIpRateLimitFilterTest {
 
     assertDoesNotThrow { rateLimitFilter.doFilter(req, res, chain) }
 
-    Mockito.verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalIpRateLimitPolicy(req)
+    verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalIpRateLimitPolicy(req)
   }
 
   @Test
@@ -69,7 +68,7 @@ class GlobalIpRateLimitFilterTest {
   }
 
   @Test
-  fun `it does rate limit if request is OPTIONS`() {
+  fun `it does not rate limit if request is OPTIONS`() {
     val req = MockHttpServletRequest()
     val res = MockHttpServletResponse()
     val chain = MockFilterChain()
@@ -91,7 +90,7 @@ class GlobalIpRateLimitFilterTest {
       .thenThrow(RateLimitedException(1000, true))
 
     assertDoesNotThrow { rateLimitFilter.doFilter(req, res, chain) }
-    Mockito.verify(rateLimitService, Mockito.never()).consumeGlobalIpRateLimitPolicy(any())
+    verify(rateLimitService, never()).consumeGlobalIpRateLimitPolicy(any())
   }
 
   @Test
@@ -104,7 +103,7 @@ class GlobalIpRateLimitFilterTest {
       .thenThrow(RateLimitedException(1000, true))
 
     assertDoesNotThrow { rateLimitFilter.doFilter(req, res, chain) }
-    Mockito.verify(rateLimitService, Mockito.never()).consumeGlobalIpRateLimitPolicy(any())
+    verify(rateLimitService, never()).consumeGlobalIpRateLimitPolicy(any())
   }
 
   @Test
@@ -117,7 +116,7 @@ class GlobalIpRateLimitFilterTest {
       .thenThrow(RateLimitedException(1000, true))
 
     assertThrows<RateLimitedException> { rateLimitFilter.doFilter(req, res, chain) }
-    Mockito.verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalIpRateLimitPolicy(req)
+    verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalIpRateLimitPolicy(req)
   }
 
   @Test
@@ -130,6 +129,6 @@ class GlobalIpRateLimitFilterTest {
       .thenThrow(RateLimitedException(1000, true))
 
     assertThrows<RateLimitedException> { rateLimitFilter.doFilter(req, res, chain) }
-    Mockito.verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalIpRateLimitPolicy(req)
+    verify(rateLimitService, Mockito.atLeastOnce()).consumeGlobalIpRateLimitPolicy(req)
   }
 }
