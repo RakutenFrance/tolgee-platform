@@ -1,10 +1,14 @@
 package io.tolgee.component.lockingProvider
 
 import io.tolgee.component.LockingProvider
+import io.tolgee.component.RedisLatencyMetrics
 import org.redisson.api.RLock
 import org.redisson.api.RedissonClient
 
-class RedissonLockingProvider(private val redissonClient: RedissonClient) : LockingProvider {
+class RedissonLockingProvider(
+  private val redissonClient: RedissonClient,
+  private val redisLatencyMetrics: RedisLatencyMetrics,
+) : LockingProvider {
   override fun getLock(name: String): RLock {
     return redissonClient.getLock(name)
   }
@@ -14,12 +18,18 @@ class RedissonLockingProvider(private val redissonClient: RedissonClient) : Lock
     fn: () -> T,
   ): T {
     val lock = this.getLock(name)
-    lock.lock()
+
+    redisLatencyMetrics.measureVoid("lock.acquire") {
+      lock.lock()
+    }
+
     try {
       return fn()
     } finally {
       if (lock.isHeldByCurrentThread) {
-        lock.unlock()
+        redisLatencyMetrics.measureVoid("lock.release") {
+          lock.unlock()
+        }
       }
     }
   }

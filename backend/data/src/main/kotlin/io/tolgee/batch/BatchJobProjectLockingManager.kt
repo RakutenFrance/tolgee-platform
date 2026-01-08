@@ -1,6 +1,7 @@
 package io.tolgee.batch
 
 import io.tolgee.batch.data.BatchJobDto
+import io.tolgee.component.RedisLatencyMetrics
 import io.tolgee.component.UsingRedisProvider
 import io.tolgee.configuration.tolgee.BatchProperties
 import io.tolgee.util.Logging
@@ -26,6 +27,7 @@ class BatchJobProjectLockingManager(
   @Lazy
   private val redissonClient: RedissonClient,
   private val usingRedisProvider: UsingRedisProvider,
+  private val redisLatencyMetrics: RedisLatencyMetrics,
 ) : Logging, InitializingBean {
   companion object {
     private val localProjectLocks by lazy {
@@ -55,16 +57,18 @@ class BatchJobProjectLockingManager(
     jobId: Long,
   ) {
     projectId ?: return
-    getMap().compute(projectId) { _, lockedJobIds ->
-      logger.debug("Unlocking job: $jobId for project $projectId")
-      val currentJobs = lockedJobIds ?: emptySet()
-      if (currentJobs.contains(jobId)) {
+    measureMapOperation("map.compute") {
+      getMap().compute(projectId) { _, lockedJobIds ->
         logger.debug("Unlocking job: $jobId for project $projectId")
-        val updatedJobs = currentJobs - jobId
-        return@compute updatedJobs.ifEmpty { emptySet() }
+        val currentJobs = lockedJobIds ?: emptySet()
+        if (currentJobs.contains(jobId)) {
+          logger.debug("Unlocking job: $jobId for project $projectId")
+          val updatedJobs = currentJobs - jobId
+          return@compute updatedJobs.ifEmpty { emptySet() }
+        }
+        logger.debug("Job: $jobId for project $projectId is not locked")
+        return@compute currentJobs
       }
-      logger.debug("Job: $jobId for project $projectId is not locked")
-      return@compute currentJobs
     }
   }
 
@@ -78,24 +82,25 @@ class BatchJobProjectLockingManager(
   private fun tryLockWithRedisson(batchJobDto: BatchJobDto): Boolean {
     val projectId = batchJobDto.projectId ?: return true
     val computedJobIds =
-      getRedissonProjectLocks().compute(projectId) { _, lockedJobIds ->
-        val newLockedJobIds = computeFnBody(batchJobDto, lockedJobIds ?: emptySet())
-        logger.debug(
-          "While trying to lock on redis {} for project {} new lock value is {}",
-          batchJobDto.id,
-          batchJobDto.projectId,
+      measureMapOperation("map.compute") {
+        getRedissonProjectLocks().compute(projectId) { _, lockedJobIds ->
+          val newLockedJobIds = computeFnBody(batchJobDto, lockedJobIds ?: emptySet())
+          logger.debug(
+            "While trying to lock on redis {} for project {} new lock value is {}",
+            batchJobDto.id,
+            batchJobDto.projectId,
+            newLockedJobIds
+          )
           newLockedJobIds
-        )
-        newLockedJobIds
+        }
       } ?: emptySet()
     return computedJobIds.contains(batchJobDto.id)
   }
 
   fun getLockedForProject(projectId: Long): Set<Long> {
-    if (usingRedisProvider.areWeUsingRedis) {
-      return getRedissonProjectLocks()[projectId] ?: emptySet()
-    }
-    return localProjectLocks[projectId] ?: emptySet()
+    return measureMapOperation("map.get") {
+      getMap()[projectId]
+    } ?: emptySet()
   }
 
   private fun tryLockLocal(batchJobDto: BatchJobDto): Boolean {
@@ -185,6 +190,21 @@ class BatchJobProjectLockingManager(
 
     logger.debug("No RUNNING or started jobs found for project $projectId, allowing new job to acquire lock")
     return null
+  }
+
+  /**
+   * Wraps map operations with Redis latency metrics when using Redis.
+   * No-op wrapper when using local storage.
+   */
+  private fun <T> measureMapOperation(
+    operation: String,
+    block: () -> T,
+  ): T {
+    return if (usingRedisProvider.areWeUsingRedis) {
+      redisLatencyMetrics.measure(operation, block)
+    } else {
+      block()
+    }
   }
 
   private fun getRedissonProjectLocks(): ConcurrentMap<Long, Set<Long>> {
