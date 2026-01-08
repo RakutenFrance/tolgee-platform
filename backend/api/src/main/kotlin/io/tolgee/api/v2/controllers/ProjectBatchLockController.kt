@@ -43,7 +43,7 @@ class ProjectBatchLockController(
   @RequiresSuperAuthentication
   fun getProjectLocks(): CollectionModel<ProjectLockModel> {
     logger.debug("Retrieving all project batch locks")
-    
+
     val locks = batchJobProjectLockingManager.getMap()
     val lockModels = locks.entries.map { (projectId, lockedJobIds) ->
       createProjectLockModel(projectId, lockedJobIds)
@@ -90,7 +90,7 @@ class ProjectBatchLockController(
   @RequiresSuperAuthentication
   fun getBatchJobQueue(): CollectionModel<QueueItemModel> {
     logger.debug("Retrieving current batch job queue")
-    
+
     val queueItems = batchJobChunkExecutionQueue.getAllQueueItems()
     val queueModels = queueItems.map { item ->
       QueueItemModel(
@@ -101,7 +101,7 @@ class ProjectBatchLockController(
         managementErrorRetrials = item.managementErrorRetrials
       )
     }
-    
+
     logger.debug("Retrieved ${queueModels.size} items from batch job queue")
     return CollectionModel.of(queueModels)
   }

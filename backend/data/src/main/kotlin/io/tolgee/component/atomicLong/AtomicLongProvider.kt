@@ -1,5 +1,6 @@
 package io.tolgee.component.atomicLong
 
+import io.tolgee.component.RedisLatencyMetrics
 import io.tolgee.component.UsingRedisProvider
 import io.tolgee.util.Logging
 import io.tolgee.util.TolgeeAtomicLong
@@ -13,6 +14,7 @@ import java.util.concurrent.TimeUnit
 class AtomicLongProvider(
   val isUsingRedisProvider: UsingRedisProvider,
   val applicationContext: ApplicationContext,
+  val redisLatencyMetrics: RedisLatencyMetrics,
 ) : Logging {
   fun get(
     name: String,
@@ -22,16 +24,29 @@ class AtomicLongProvider(
       // we need to lock it, because we don't want to set the default multiple times
       val lock = redissonClient.getLock("lock_$name")
       try {
-        lock.lock(10, TimeUnit.SECONDS)
-        logger.debug("Acquired lock for $name")
-        val atomicLong = redissonClient.getAtomicLong(name)
-        if (!atomicLong.isExists) {
-          atomicLong.set(defaultProvider())
+        redisLatencyMetrics.measureVoid("atomiclong.lock.acquire") {
+          lock.lock(10, TimeUnit.SECONDS)
         }
-        RedisTolgeeAtomicLong(atomicLong)
+        logger.debug("Acquired lock for $name")
+
+        val atomicLong = redissonClient.getAtomicLong(name)
+
+        val exists =
+          redisLatencyMetrics.measure("atomiclong.exists") {
+            atomicLong.isExists
+          }
+
+        if (!exists) {
+          redisLatencyMetrics.measureVoid("atomiclong.set") {
+            atomicLong.set(defaultProvider())
+          }
+        }
+        RedisTolgeeAtomicLong(atomicLong, redisLatencyMetrics)
       } finally {
         if (lock.isHeldByCurrentThread) {
-          lock.unlock()
+          redisLatencyMetrics.measureVoid("atomiclong.lock.release") {
+            lock.unlock()
+          }
         }
       }
     } else {

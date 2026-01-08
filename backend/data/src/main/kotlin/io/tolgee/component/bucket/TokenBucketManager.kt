@@ -2,6 +2,7 @@ package io.tolgee.component.bucket
 
 import io.tolgee.component.CurrentDateProvider
 import io.tolgee.component.LockingProvider
+import io.tolgee.component.RedisLatencyMetrics
 import io.tolgee.component.UsingRedisProvider
 import io.tolgee.util.Logging
 import org.redisson.api.RedissonClient
@@ -16,6 +17,7 @@ class TokenBucketManager(
   val usingRedisProvider: UsingRedisProvider,
   val currentDateProvider: CurrentDateProvider,
   val lockingProvider: LockingProvider,
+  val redisLatencyMetrics: RedisLatencyMetrics,
   @Lazy
   var redissonClient: RedissonClient,
 ) : Logging {
@@ -137,8 +139,18 @@ class TokenBucketManager(
     }
     return lockingProvider.withLocking(getLockingId(bucketId)) {
       val redissonBucket = redissonClient.getBucket<TokenBucket>(bucketId)
-      val newBucket = mappingFn(redissonBucket.get())
-      redissonBucket.set(newBucket)
+
+      val currentBucket =
+        redisLatencyMetrics.measure("bucket.get") {
+          redissonBucket.get()
+        }
+
+      val newBucket = mappingFn(currentBucket)
+
+      redisLatencyMetrics.measureVoid("bucket.set") {
+        redissonBucket.set(newBucket)
+      }
+
       return@withLocking newBucket
     }
   }
