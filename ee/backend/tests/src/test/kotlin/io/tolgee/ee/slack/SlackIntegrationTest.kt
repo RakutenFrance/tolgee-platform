@@ -17,12 +17,14 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.mock.mockito.MockBean
-import java.util.*
+import org.springframework.test.context.bean.override.mockito.MockitoBean
+import java.util.UUID
 
-class SlackIntegrationTest : ProjectAuthControllerTest(), Logging {
+class SlackIntegrationTest :
+  ProjectAuthControllerTest(),
+  Logging {
   @Autowired
-  @MockBean
+  @MockitoBean
   lateinit var slackClient: Slack
 
   @Autowired
@@ -44,7 +46,9 @@ class SlackIntegrationTest : ProjectAuthControllerTest(), Logging {
     val testData = SlackTestData()
     testDataService.saveTestData(testData.root)
     val mockedSlackClient = MockedSlackClient.mockSlackClient(slackClient)
-    val langTag = testData.projectBuilder.self.baseLanguage?.tag ?: ""
+    val langTag =
+      testData.projectBuilder.self.baseLanguage
+        ?.tag ?: ""
     loginAsUser(testData.user.username)
     Mockito.clearInvocations(mockedSlackClient.methodsClientMock)
     modifyTranslationData(testData.projectBuilder.self.id, langTag, testData.key.name)

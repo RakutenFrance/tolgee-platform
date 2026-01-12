@@ -3,7 +3,7 @@ package io.tolgee.dtos.cacheable
 import io.tolgee.model.UserAccount
 import io.tolgee.model.enums.ThirdPartyAuthType
 import java.io.Serializable
-import java.util.*
+import java.util.Date
 
 data class UserAccountDto(
   val name: String,
@@ -42,4 +42,16 @@ data class UserAccountDto(
   override fun toString(): String {
     return username
   }
+}
+
+fun UserAccountDto.isAdmin(): Boolean {
+  return role == UserAccount.Role.ADMIN
+}
+
+fun UserAccountDto.isSupporter(): Boolean {
+  return role == UserAccount.Role.SUPPORTER
+}
+
+fun UserAccountDto.isSupporterOrAdmin(): Boolean {
+  return role == UserAccount.Role.SUPPORTER || role == UserAccount.Role.ADMIN
 }

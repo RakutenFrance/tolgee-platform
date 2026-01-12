@@ -12,9 +12,11 @@ import org.springframework.mock.web.MockMultipartFile
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
 import java.time.Duration
-import java.util.*
+import java.util.Date
 
-abstract class AuthorizedControllerTest : AbstractControllerTest(), AuthRequestPerformer {
+abstract class AuthorizedControllerTest :
+  AbstractControllerTest(),
+  AuthRequestPerformer {
   private var _userAccount: UserAccount? = null
 
   var userAccount: UserAccount?
@@ -66,7 +68,7 @@ abstract class AuthorizedControllerTest : AbstractControllerTest(), AuthRequestP
     init(generateJwtToken(_userAccount!!.id))
   }
 
-  protected fun generateJwtToken(userAccountId: Long) = jwtService.emitToken(userAccountId, true)
+  protected fun generateJwtToken(userAccountId: Long) = jwtService.emitToken(userAccountId, isSuper = true)
 
   fun refreshUser() {
     _userAccount = userAccountService.findActive(_userAccount!!.id)

@@ -28,14 +28,15 @@ import org.mockito.kotlin.only
 import org.mockito.kotlin.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.MvcResult
 import org.springframework.web.client.RestTemplate
-import java.util.*
+import java.util.Date
+import java.util.HashMap
 
 @SpringBootTest(
   properties = [
@@ -45,7 +46,7 @@ import java.util.*
 class SsoGlobalTest : AuthorizedControllerTest() {
   private lateinit var testData: SsoTestData
 
-  @MockBean
+  @MockitoBean
   @Autowired
   private val restTemplate: RestTemplate? = null
 

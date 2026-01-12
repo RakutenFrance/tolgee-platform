@@ -17,6 +17,7 @@ import io.tolgee.fixtures.andIsOk
 import io.tolgee.fixtures.andPrettyPrint
 import io.tolgee.fixtures.isValidId
 import io.tolgee.fixtures.node
+import io.tolgee.fixtures.waitForNotThrowing
 import io.tolgee.model.enums.AssignableTranslationState
 import io.tolgee.model.enums.Scope
 import io.tolgee.model.enums.TranslationState
@@ -311,18 +312,18 @@ class KeyControllerComplexEditTest : ProjectAuthControllerTest("/v2/projects/") 
     val thirdKey = testData.addThirdKey()
     testDataService.saveTestData(testData.root)
     verifyKeysDistancesStoredAsynchronously {
-        performProjectAuthPut(
-          "keys/${testData.firstKey.id}/complex-update",
-          ComplexEditKeyDto(
-            name = testData.firstKey.name,
-            relatedKeysInOrder =
-              mutableListOf(
-                RelatedKeyDto(null, testData.firstKey.name),
-                RelatedKeyDto(null, testData.secondKey.name),
-                RelatedKeyDto(null, thirdKey.name),
-              ),
-          ),
-        ).andIsOk
+      performProjectAuthPut(
+        "keys/${testData.firstKey.id}/complex-update",
+        ComplexEditKeyDto(
+          name = testData.firstKey.name,
+          relatedKeysInOrder =
+            mutableListOf(
+              RelatedKeyDto(null, testData.firstKey.name),
+              RelatedKeyDto(null, testData.secondKey.name),
+              RelatedKeyDto(null, thirdKey.name),
+            ),
+        ),
+      ).andIsOk
     }
     bigMetaService.getCloseKeyIds(testData.firstKey.id).assert.hasSize(2)
   }
@@ -532,6 +533,8 @@ class KeyControllerComplexEditTest : ProjectAuthControllerTest("/v2/projects/") 
     val asynMetricBefore = metrics.bigMetaStoringAsyncTimer.count()
     storeBigMeta()
     assertThat(metrics.bigMetaStoringTimer.count()).isEqualTo(synMetricBefore + 1)
-    assertThat(metrics.bigMetaStoringAsyncTimer.count()).isEqualTo(asynMetricBefore + 1)
+    waitForNotThrowing(pollTime = 50, timeout = 2000) {
+      assertThat(metrics.bigMetaStoringAsyncTimer.count()).isEqualTo(asynMetricBefore + 1)
+    }
   }
 }

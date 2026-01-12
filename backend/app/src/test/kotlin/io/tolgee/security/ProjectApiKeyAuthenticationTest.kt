@@ -42,8 +42,10 @@ class ProjectApiKeyAuthenticationTest : AbstractControllerTest() {
 
   @Test
   fun accessWithApiKey_failure_wrong_key() {
-    mvc.perform(MockMvcRequestBuilders.get("/v2/projects/translations?ak=wrong_api_key"))
-      .andExpect(MockMvcResultMatchers.status().isUnauthorized).andReturn()
+    mvc
+      .perform(MockMvcRequestBuilders.get("/v2/projects/translations?ak=wrong_api_key"))
+      .andExpect(MockMvcResultMatchers.status().isUnauthorized)
+      .andReturn()
   }
 
   @Test
@@ -71,8 +73,12 @@ class ProjectApiKeyAuthenticationTest : AbstractControllerTest() {
 
     waitForNotThrowing(throwableClass = AssertionError::class, timeout = 5000) {
       executeInNewTransaction {
-        apiKeyService.get(testData.frantasKey.id).lastUsedAt?.time
-          .assert.isEqualTo(currentDateProvider.forcedDate!!.time)
+        apiKeyService
+          .get(testData.frantasKey.id)
+          .lastUsedAt
+          ?.time
+          .assert
+          .isEqualTo(currentDateProvider.forcedDate!!.time)
       }
     }
   }
@@ -143,7 +149,7 @@ class ProjectApiKeyAuthenticationTest : AbstractControllerTest() {
     ).andIsOk
 
     // Revoke user permissions
-    val tokenFrantisek = jwtService.emitToken(testData.frantisekDobrota.id, true)
+    val tokenFrantisek = jwtService.emitToken(testData.frantisekDobrota.id, isSuper = true)
     performPut(
       "/v2/projects/${testData.frantasProject.id}/users/${testData.user.id}/set-permissions/VIEW",
       null,

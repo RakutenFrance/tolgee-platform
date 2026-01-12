@@ -47,7 +47,7 @@ class LlmProperties : MachineTranslationServiceProperties {
     ```
     
     Check [llm providers documentation](/platform/projects_and_organizations/llm-providers#self-hosted-server-configuration) for more information.
-  """
+  """,
   )
   var providers: MutableList<LlmProvider> = mutableListOf()
 
@@ -66,16 +66,23 @@ class LlmProperties : MachineTranslationServiceProperties {
     override var model: String? = null,
     @DocProperty(description = "Provider deployment (optional for some providers)")
     override var deployment: String? = null,
+    @DocProperty(
+      description = """Maximum number of tokens to generate. 
+      `max_completion_tokens` option for OpenAI API.
+      `max_tokens` for Anthropic API.`""",
+    )
+    override var maxTokens: Long = MAX_TOKENS_DEFAULT,
     @DocProperty(description = "ChatGPT reasoning effort")
     override var reasoningEffort: String? = null,
+    @DocProperty(description = "Set to `json_schema` if the API supports JSON Schema")
     override var format: String? = null,
     @DocProperty(
-      description = "Load-balancing instruction HIGH = used for suggestions, LOW = used for batch operations"
+      description = "Load-balancing instruction HIGH = used for suggestions, LOW = used for batch operations",
     )
     override var priority: LlmProviderPriority? = null,
     @DocProperty(
       description =
-        "Specify attempts timeout(s) (Example: [30, 30] - Tolgee will make two attempts, each with timeout of 30s)"
+        "Specify attempts timeout(s) (Example: [30, 30] - Tolgee will make two attempts, each with timeout of 30s)",
     )
     override var attempts: List<Int>? = null,
     @DocProperty(hidden = true)
@@ -98,7 +105,12 @@ class LlmProperties : MachineTranslationServiceProperties {
         tokenPriceInCreditsInput = tokenPriceInCreditsInput,
         tokenPriceInCreditsOutput = tokenPriceInCreditsOutput,
         attempts = attempts,
+        maxTokens = maxTokens,
       )
+    }
+
+    companion object {
+      const val MAX_TOKENS_DEFAULT: Long = 2000
     }
   }
 }

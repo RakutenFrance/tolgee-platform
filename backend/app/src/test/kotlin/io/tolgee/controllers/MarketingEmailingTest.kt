@@ -2,6 +2,7 @@ package io.tolgee.controllers
 
 import io.tolgee.component.emailContacts.EmailServiceManager
 import io.tolgee.component.emailContacts.MailJetEmailServiceManager
+import io.tolgee.config.TestEmailConfiguration
 import io.tolgee.dtos.request.UserUpdateRequestDto
 import io.tolgee.dtos.request.auth.SignUpDto
 import io.tolgee.fixtures.EmailTestUtil
@@ -24,7 +25,8 @@ import org.mockito.kotlin.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.context.annotation.Import
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
@@ -32,13 +34,13 @@ import org.springframework.web.client.RestTemplate
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(TestEmailConfiguration::class)
 class MarketingEmailingTest : AuthorizedControllerTest() {
-
   @Autowired
-  @MockBean
+  @MockitoBean
   lateinit var mailjetEmailServiceManager: MailJetEmailServiceManager
 
-  @MockBean
+  @MockitoBean
   @Autowired
   private val restTemplate: RestTemplate? = null
 
@@ -138,15 +140,19 @@ class MarketingEmailingTest : AuthorizedControllerTest() {
 
   private fun acceptEmailVerification(user: UserAccount) {
     val emailVerificationCode = user.emailVerification!!.code
-    mvc.perform(MockMvcRequestBuilders.get("/api/public/verify_email/${user.id}/$emailVerificationCode"))
-      .andExpect(MockMvcResultMatchers.status().isOk).andReturn()
+    mvc
+      .perform(MockMvcRequestBuilders.get("/api/public/verify_email/${user.id}/$emailVerificationCode"))
+      .andExpect(MockMvcResultMatchers.status().isOk)
+      .andReturn()
   }
 
   private fun verifyEmailUpdated() {
     Thread.sleep(100)
     forServiceManagers {
       val lastInvocation =
-        Mockito.mockingDetails(it).invocations
+        Mockito
+          .mockingDetails(it)
+          .invocations
           .last { it.method.name == "updateContact" }
       val invocationNewEmail = lastInvocation.arguments[1]
       val invocationNewName = lastInvocation.arguments[2]
@@ -162,7 +168,9 @@ class MarketingEmailingTest : AuthorizedControllerTest() {
   ) {
     forServiceManagers {
       val lastInvocation =
-        Mockito.mockingDetails(it).invocations
+        Mockito
+          .mockingDetails(it)
+          .invocations
           .last { it.method.name == "submitNewContact" }
       val invocationEmail = lastInvocation.arguments[1]
       val invocationName = lastInvocation.arguments[0]

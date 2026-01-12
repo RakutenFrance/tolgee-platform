@@ -21,24 +21,24 @@ import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.web.client.RestTemplate
-import java.util.*
+import java.util.UUID
 
 @SpringBootTest
 class WebhookAutomationTest : ProjectAuthControllerTest("/v2/projects/") {
   @Autowired
   lateinit var webhookConfigService: WebhookConfigService
 
-  @MockBean
+  @MockitoBean
   @Autowired
   lateinit var restTemplate: RestTemplate
 
-  @MockBean
+  @MockitoBean
   @Autowired
   @Qualifier("webhookRestTemplate")
   lateinit var webhookRestTemplate: RestTemplate
@@ -77,8 +77,11 @@ class WebhookAutomationTest : ProjectAuthControllerTest("/v2/projects/") {
     verifyWebhookExecuted(testData) {
       modifyTranslationData()
     }
-    webhookConfigService.get(testData.webhookConfig.self.id).firstFailed!!
-      .time.assert.isEqualTo(currentDateProvider.date.time)
+    webhookConfigService
+      .get(testData.webhookConfig.self.id)
+      .firstFailed!!
+      .time.assert
+      .isEqualTo(currentDateProvider.date.time)
 
     mockWebhookResponse(HttpStatus.OK)
 
@@ -91,7 +94,10 @@ class WebhookAutomationTest : ProjectAuthControllerTest("/v2/projects/") {
       modifyTranslationData()
     }
 
-    webhookConfigService.get(testData.webhookConfig.self.id).firstFailed.assert.isNull()
+    webhookConfigService
+      .get(testData.webhookConfig.self.id)
+      .firstFailed.assert
+      .isNull()
   }
 
   private fun mockWebhookResponse(httpStatus: HttpStatus) {
@@ -131,8 +137,14 @@ class WebhookAutomationTest : ProjectAuthControllerTest("/v2/projects/") {
     webhookTriggeringCallback()
     waitForNotThrowing {
       getWebhookRestTemplateInvocationCount().assert.isEqualTo(invocations + 1)
-      val callArguments = Mockito.mockingDetails(webhookRestTemplate).invocations.last().arguments
-      callArguments[0].assert
+      val callArguments =
+        Mockito
+          .mockingDetails(webhookRestTemplate)
+          .invocations
+          .last()
+          .arguments
+      callArguments[0]
+        .assert
         .isEqualTo(testData.webhookConfig.self.url)
       val httpEntity = callArguments[2] as HttpEntity<String>
 
@@ -145,8 +157,11 @@ class WebhookAutomationTest : ProjectAuthControllerTest("/v2/projects/") {
           node("revisionId").isNumber
         }
       }
-      webhookConfigService.get(testData.webhookConfig.self.id)
-        .lastExecuted!!.time.assert.isEqualTo(currentDateProvider.date.time)
+      webhookConfigService
+        .get(testData.webhookConfig.self.id)
+        .lastExecuted!!
+        .time.assert
+        .isEqualTo(currentDateProvider.date.time)
     }
   }
 

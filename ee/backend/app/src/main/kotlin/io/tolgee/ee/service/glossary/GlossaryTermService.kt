@@ -3,7 +3,13 @@ package io.tolgee.ee.service.glossary
 import io.tolgee.component.machineTranslation.metadata.TranslationGlossaryItem
 import io.tolgee.constants.Message
 import io.tolgee.dtos.cacheable.ProjectDto
-import io.tolgee.ee.data.glossary.*
+import io.tolgee.ee.data.glossary.CreateGlossaryTermRequest
+import io.tolgee.ee.data.glossary.CreateGlossaryTermWithTranslationRequest
+import io.tolgee.ee.data.glossary.GlossaryTermHighlight
+import io.tolgee.ee.data.glossary.Position
+import io.tolgee.ee.data.glossary.UpdateGlossaryTermRequest
+import io.tolgee.ee.data.glossary.UpdateGlossaryTermTranslationRequest
+import io.tolgee.ee.data.glossary.UpdateGlossaryTermWithTranslationRequest
 import io.tolgee.ee.repository.glossary.GlossaryTermRepository
 import io.tolgee.exceptions.NotFoundException
 import io.tolgee.model.glossary.Glossary
@@ -17,7 +23,7 @@ import org.springframework.context.annotation.Primary
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
-import java.util.*
+import java.util.Locale
 
 @Primary
 @Service
@@ -64,6 +70,18 @@ class GlossaryTermService(
     val termIds = glossaryTermRepository.findByGlossaryIdsPaged(glossary, pageable, search, languageTags)
     val terms = glossaryTermRepository.findByIdsWithTranslations(termIds.content).associateBy { it.id }
     return termIds.map { terms[it] }
+  }
+
+  fun findAllWithTranslations(
+    organizationId: Long,
+    glossaryId: Long,
+  ): List<GlossaryTerm> {
+    val glossary = glossaryService.get(organizationId, glossaryId)
+    return findAllWithTranslations(glossary)
+  }
+
+  fun findAllWithTranslations(glossary: Glossary): List<GlossaryTerm> {
+    return glossaryTermRepository.findByGlossaryWithTranslations(glossary)
   }
 
   fun findAllIds(
@@ -211,6 +229,16 @@ class GlossaryTermService(
     glossaryTermRepository.deleteByGlossaryAndIdIn(glossary, termIds)
   }
 
+  @Transactional
+  fun deleteAllByGlossary(glossary: Glossary) {
+    glossaryTermRepository.deleteAllByGlossary(glossary)
+  }
+
+  @Transactional
+  fun saveAll(terms: Iterable<GlossaryTerm>) {
+    glossaryTermRepository.saveAll(terms)
+  }
+
   fun getHighlights(
     organizationId: Long,
     projectId: Long,
@@ -223,11 +251,12 @@ class GlossaryTermService(
     val locale = Locale.forLanguageTag(languageTag) ?: Locale.ROOT
     val textLowercased = text.lowercase(locale)
 
-    return translations.flatMap { translation ->
-      findTranslationPositions(text, textLowercased, translation, locale).map { position ->
-        GlossaryTermHighlight(position, translation)
-      }
-    }.toSet()
+    return translations
+      .flatMap { translation ->
+        findTranslationPositions(text, textLowercased, translation, locale).map { position ->
+          GlossaryTermHighlight(position, translation)
+        }
+      }.toSet()
   }
 
   private fun findTranslationPositions(

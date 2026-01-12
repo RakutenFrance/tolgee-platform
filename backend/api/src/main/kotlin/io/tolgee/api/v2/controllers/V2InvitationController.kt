@@ -10,13 +10,18 @@ import io.tolgee.dtos.request.project.ProjectInviteUserDto
 import io.tolgee.exceptions.BadRequestException
 import io.tolgee.exceptions.NotFoundException
 import io.tolgee.facade.ProjectPermissionFacade
-import io.tolgee.hateoas.invitation.*
+import io.tolgee.hateoas.invitation.OrganizationInvitationModel
+import io.tolgee.hateoas.invitation.OrganizationInvitationModelAssembler
+import io.tolgee.hateoas.invitation.ProjectInvitationModel
+import io.tolgee.hateoas.invitation.ProjectInvitationModelAssembler
+import io.tolgee.hateoas.invitation.PublicInvitationModelAssembler
 import io.tolgee.model.enums.OrganizationRoleType
 import io.tolgee.model.enums.Scope
 import io.tolgee.security.ProjectHolder
 import io.tolgee.security.authentication.AllowApiAccess
 import io.tolgee.security.authentication.AuthenticationFacade
 import io.tolgee.security.authentication.RequiresSuperAuthentication
+import io.tolgee.security.authentication.WriteOperation
 import io.tolgee.security.authorization.RequiresOrganizationRole
 import io.tolgee.security.authorization.RequiresProjectPermissions
 import io.tolgee.service.TranslationAgencyService
@@ -31,7 +36,13 @@ import jakarta.validation.Valid
 import org.springframework.hateoas.CollectionModel
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("")
@@ -53,8 +64,23 @@ class V2InvitationController(
   private val publicInvitationModelAssembler: PublicInvitationModelAssembler,
 ) {
   @GetMapping("/v2/invitations/{code}/accept")
-  @Operation(summary = "Accepts invitation to project or organization")
+  @WriteOperation
+  @Operation(
+    summary =
+      "Accepts invitation to project or organization " +
+        "(deprecated: use PUT method instead)",
+    deprecated = true,
+  )
   fun acceptInvitation(
+    @PathVariable("code") code: String?,
+  ): ResponseEntity<Void> {
+    invitationService.accept(code)
+    return ResponseEntity(HttpStatus.OK)
+  }
+
+  @PutMapping("/v2/invitations/{code}/accept")
+  @Operation(summary = "Accepts invitation to project or organization")
+  fun acceptInvitationPut(
     @PathVariable("code") code: String?,
   ): ResponseEntity<Void> {
     invitationService.accept(code)
@@ -78,7 +104,9 @@ class V2InvitationController(
     }
 
     invitation.organizationRole?.let {
-      organizationRoleService.checkUserIsOwner(invitation.organizationRole!!.organization!!.id)
+      organizationRoleService.checkUserCanDeleteInvitation(
+        invitation.organizationRole!!.organization!!.id,
+      )
     }
 
     invitationService.delete(invitation)

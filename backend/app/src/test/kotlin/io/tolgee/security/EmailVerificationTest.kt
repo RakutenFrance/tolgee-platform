@@ -1,5 +1,6 @@
 package io.tolgee.security
 
+import io.tolgee.config.TestEmailConfiguration
 import io.tolgee.configuration.tolgee.TolgeeProperties
 import io.tolgee.dtos.request.auth.SignUpDto
 import io.tolgee.exceptions.NotFoundException
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MvcResult
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
@@ -17,6 +19,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
 
+@Import(TestEmailConfiguration::class)
 class EmailVerificationTest : AbstractControllerTest() {
   @Autowired
   private lateinit var emailTestUtil: EmailTestUtil
@@ -65,8 +68,10 @@ class EmailVerificationTest : AbstractControllerTest() {
   fun verifiesEmail() {
     val createUser = dbPopulator.createUserIfNotExists(initialUsername)
     val emailVerification = emailVerificationService.createForUser(createUser)
-    mvc.perform(get("/api/public/verify_email/${createUser.id}/${emailVerification!!.code}"))
-      .andExpect(status().isOk).andReturn()
+    mvc
+      .perform(get("/api/public/verify_email/${createUser.id}/${emailVerification!!.code}"))
+      .andExpect(status().isOk)
+      .andReturn()
 
     assertThat(emailVerificationRepository.findById(emailVerification.id!!)).isEmpty
   }
@@ -76,8 +81,10 @@ class EmailVerificationTest : AbstractControllerTest() {
   fun verifiesNewEmail() {
     val createUser = dbPopulator.createUserIfNotExists(initialUsername)
     val emailVerification = emailVerificationService.createForUser(createUser, newEmail = "this.is@new.email")
-    mvc.perform(get("/api/public/verify_email/${createUser.id}/${emailVerification!!.code}"))
-      .andExpect(status().isOk).andReturn()
+    mvc
+      .perform(get("/api/public/verify_email/${createUser.id}/${emailVerification!!.code}"))
+      .andExpect(status().isOk)
+      .andReturn()
     assertThat(emailVerificationRepository.findById(emailVerification.id!!)).isEmpty
     assertThat(userAccountService.findActive(createUser.username)!!.username).isEqualTo("this.is@new.email")
   }
@@ -86,8 +93,10 @@ class EmailVerificationTest : AbstractControllerTest() {
   fun doesNotVerifyWithWrongCode() {
     val createUser = dbPopulator.createUserIfNotExists(initialUsername)
     val emailVerification = emailVerificationService.createForUser(createUser)
-    mvc.perform(get("/api/public/verify_email/${createUser.id}/wrong_code"))
-      .andExpect(status().isBadRequest).andReturn()
+    mvc
+      .perform(get("/api/public/verify_email/${createUser.id}/wrong_code"))
+      .andExpect(status().isBadRequest)
+      .andReturn()
 
     assertThat(emailVerificationRepository.findById(emailVerification!!.id!!)).isPresent
   }
@@ -97,8 +106,10 @@ class EmailVerificationTest : AbstractControllerTest() {
   fun doesNotVerifyWithWrongUser() {
     val createUser = dbPopulator.createUserIfNotExists(initialUsername)
     val emailVerification = emailVerificationService.createForUser(createUser)
-    mvc.perform(get("/api/public/verify_email/${createUser.id + 1L}/${emailVerification!!.code}"))
-      .andExpect(status().isNotFound).andReturn()
+    mvc
+      .perform(get("/api/public/verify_email/${createUser.id + 1L}/${emailVerification!!.code}"))
+      .andExpect(status().isNotFound)
+      .andReturn()
 
     assertThat(emailVerificationRepository.findById(emailVerification.id!!)).isPresent
   }
@@ -106,13 +117,13 @@ class EmailVerificationTest : AbstractControllerTest() {
   val signUpDto = SignUpDto("Test Name", "aaa@aaa.com", null, "testtest")
 
   protected fun perform(): MvcResult {
-    return mvc.perform(
-      post("/api/public/sign_up")
-        .content(mapper.writeValueAsString(signUpDto))
-        .accept(MediaType.ALL)
-        .contentType(MediaType.APPLICATION_JSON),
-    )
-      .andReturn()
+    return mvc
+      .perform(
+        post("/api/public/sign_up")
+          .content(mapper.writeValueAsString(signUpDto))
+          .accept(MediaType.ALL)
+          .contentType(MediaType.APPLICATION_JSON),
+      ).andReturn()
   }
 
   @Test

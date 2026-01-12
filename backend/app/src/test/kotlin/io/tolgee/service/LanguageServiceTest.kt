@@ -153,27 +153,32 @@ class LanguageServiceTest : AbstractSpringTest() {
   private fun setAuthentication(user: UserAccount) {
     SecurityContextHolder.getContext().authentication =
       TolgeeAuthentication(
-        null,
-        UserAccountDto.fromEntity(user),
-        null,
+        credentials = null,
+        deviceId = null,
+        userAccount = UserAccountDto.fromEntity(user),
+        actingAsUserAccount = null,
+        isReadOnly = false,
+        isSuperToken = false,
       )
   }
 
   private fun assertLanguageDeleted(language: Language) {
-    entityManager.createQuery("select 1 from Language l where l.id = :id")
+    entityManager
+      .createQuery("select 1 from Language l where l.id = :id")
       .setParameter("id", language.id)
-      .resultList.assert.isEmpty()
+      .resultList.assert
+      .isEmpty()
   }
 
   private fun assertActivityCreated() {
     val result =
-      entityManager.createQuery(
-        """select ar.id, ame.modifications, ame.describingData from ActivityRevision ar 
+      entityManager
+        .createQuery(
+          """select ar.id, ame.modifications, ame.describingData from ActivityRevision ar 
            join ar.modifiedEntities ame
            where ar.type = :type
         """,
-      )
-        .setParameter("type", ActivityType.HARD_DELETE_LANGUAGE)
+        ).setParameter("type", ActivityType.HARD_DELETE_LANGUAGE)
         .resultList
     result.assert.hasSize(3)
   }

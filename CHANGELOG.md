@@ -1,3 +1,260 @@
+## [3.146.1](https://github.com/tolgee/tolgee-platform/compare/v3.146.0...v3.146.1) (2026-01-09)
+
+
+### Bug Fixes
+
+* don't rate limit export endpoint twice ([#3371](https://github.com/tolgee/tolgee-platform/issues/3371)) ([5cf2454](https://github.com/tolgee/tolgee-platform/commit/5cf24546f4d2e724b9c34a64c473145ca4bd13b9))
+* use correct languageInfo when validating Mt settings ([#3357](https://github.com/tolgee/tolgee-platform/issues/3357)) ([599ad9c](https://github.com/tolgee/tolgee-platform/commit/599ad9cd96d8ca88e68a23859fd0c30bf2d583ec)), closes [#3353](https://github.com/tolgee/tolgee-platform/issues/3353)
+
+# [3.146.0](https://github.com/tolgee/tolgee-platform/compare/v3.145.5...v3.146.0) (2026-01-09)
+
+
+### Features
+
+* add manifest in generated files by exporter for Android SDK ([#3352](https://github.com/tolgee/tolgee-platform/issues/3352)) ([e2d9699](https://github.com/tolgee/tolgee-platform/commit/e2d969922c81d3fc40b713fc65aefaaa22e2ff6d))
+
+## [3.145.5](https://github.com/tolgee/tolgee-platform/compare/v3.145.4...v3.145.5) (2026-01-07)
+
+
+### Bug Fixes
+
+* Respect configurable concurrency for auto-translation jobs ([#3367](https://github.com/tolgee/tolgee-platform/issues/3367)) ([66ac1fd](https://github.com/tolgee/tolgee-platform/commit/66ac1fdf0b18b61ef5e9b62f4407baa87b14ca89))
+
+## [3.145.4](https://github.com/tolgee/tolgee-platform/compare/v3.145.3...v3.145.4) (2026-01-05)
+
+
+### Bug Fixes
+
+* Rate limit export & trace log time ([#3364](https://github.com/tolgee/tolgee-platform/issues/3364)) ([90830dd](https://github.com/tolgee/tolgee-platform/commit/90830ddf71804d9d1c2f8e65a26f4041a5447d1e))
+* Trace logging content delivery serialization ([#3365](https://github.com/tolgee/tolgee-platform/issues/3365)) ([5c6400b](https://github.com/tolgee/tolgee-platform/commit/5c6400bae95d1299927c1cea28837f0f0b9c135e))
+
+## [3.145.3](https://github.com/tolgee/tolgee-platform/compare/v3.145.2...v3.145.3) (2026-01-05)
+
+
+### Bug Fixes
+
+* update status of pending chunks in redis/local queue ([#3355](https://github.com/tolgee/tolgee-platform/issues/3355)) ([959fda0](https://github.com/tolgee/tolgee-platform/commit/959fda07300a471fc54726d52b8485fa85884d22))
+
+## [3.145.2](https://github.com/tolgee/tolgee-platform/compare/v3.145.1...v3.145.2) (2025-12-22)
+
+
+### Bug Fixes
+
+* billing admin > plan popularity storing bugs ([#3360](https://github.com/tolgee/tolgee-platform/issues/3360)) ([2eef402](https://github.com/tolgee/tolgee-platform/commit/2eef4028a1a61c198cab2f3eea60c833edbfab05))
+
+## [3.145.1](https://github.com/tolgee/tolgee-platform/compare/v3.145.0...v3.145.1) (2025-12-22)
+
+
+### Bug Fixes
+
+* Export -> escape newlines in Apple .strings files ([#3358](https://github.com/tolgee/tolgee-platform/issues/3358)) ([38f8c12](https://github.com/tolgee/tolgee-platform/commit/38f8c12a22c0971d3e0c1aa092a1205e69e78a89)), closes [#3322](https://github.com/tolgee/tolgee-platform/issues/3322)
+
+# [3.145.0](https://github.com/tolgee/tolgee-platform/compare/v3.144.1...v3.145.0) (2025-12-21)
+
+
+### Bug Fixes
+
+* User preferences storage & admin: sorted billing plans by popularity ([#3266](https://github.com/tolgee/tolgee-platform/issues/3266)) ([9203d59](https://github.com/tolgee/tolgee-platform/commit/9203d592c2700db582e943b435f8e87fd8776223))
+
+
+### Features
+
+* close search field on escape key ([#3354](https://github.com/tolgee/tolgee-platform/issues/3354)) ([fa675aa](https://github.com/tolgee/tolgee-platform/commit/fa675aadca14d710853d94f8ffc2354d5af2e032))
+
+## [3.144.1](https://github.com/tolgee/tolgee-platform/compare/v3.144.0...v3.144.1) (2025-12-19)
+
+
+### Bug Fixes
+
+* Fix plural form syntax to confirm to gettext ([#3346](https://github.com/tolgee/tolgee-platform/issues/3346)) ([c84dab6](https://github.com/tolgee/tolgee-platform/commit/c84dab60a54e83a07189d4f6f21f71e5d8302675)), closes [/github.com/autotools-mirror/gettext/blob/abb256e01e99223e98f172aaf0bb963ccdb17bee/gettext-runtime/intl/plural.y#L271](https://github.com//github.com/autotools-mirror/gettext/blob/abb256e01e99223e98f172aaf0bb963ccdb17bee/gettext-runtime/intl/plural.y/issues/L271)
+
+# [3.144.0](https://github.com/tolgee/tolgee-platform/compare/v3.143.0...v3.144.0) (2025-12-18)
+
+
+### Features
+
+* allow webp upload for project/profile avatars ([#3340](https://github.com/tolgee/tolgee-platform/issues/3340)) ([abc8431](https://github.com/tolgee/tolgee-platform/commit/abc8431b5721d900f746443505cb275b33827b44))
+
+# [3.143.0](https://github.com/tolgee/tolgee-platform/compare/v3.142.0...v3.143.0) (2025-12-15)
+
+
+### Features
+
+* Allow websocket PAK/PAT auth, caching, eTag for export ([#3203](https://github.com/tolgee/tolgee-platform/issues/3203)) ([56523df](https://github.com/tolgee/tolgee-platform/commit/56523df9b6df652bdcc1541ffbde68f87abeb0fb))
+
+# [3.142.0](https://github.com/tolgee/tolgee-platform/compare/v3.141.2...v3.142.0) (2025-12-10)
+
+
+### Features
+
+* Store data for LLM Analytics, Diagnostics, Fixed LLM errors ([#3328](https://github.com/tolgee/tolgee-platform/issues/3328)) ([88ecdb1](https://github.com/tolgee/tolgee-platform/commit/88ecdb19bd5c018ed6137be8b4680d5ff6d604db))
+
+## [3.141.2](https://github.com/tolgee/tolgee-platform/compare/v3.141.1...v3.141.2) (2025-12-03)
+
+
+### Bug Fixes
+
+* add back color dots next to the translation state filters ([#3324](https://github.com/tolgee/tolgee-platform/issues/3324)) ([6555495](https://github.com/tolgee/tolgee-platform/commit/6555495f39789ff474f561bf1bfc4a885c57ccbd))
+
+## [3.141.1](https://github.com/tolgee/tolgee-platform/compare/v3.141.0...v3.141.1) (2025-11-22)
+
+
+### Bug Fixes
+
+* show a welcome message in the web console ([#3319](https://github.com/tolgee/tolgee-platform/issues/3319)) ([eae8737](https://github.com/tolgee/tolgee-platform/commit/eae873709c5d290efaf3f2c9de6f452648fb642f))
+
+# [3.141.0](https://github.com/tolgee/tolgee-platform/compare/v3.140.4...v3.141.0) (2025-11-19)
+
+
+### Bug Fixes
+
+* handle numbered placeholders when exporting Apple Stringsdict plurals ([#3314](https://github.com/tolgee/tolgee-platform/issues/3314)) ([881486b](https://github.com/tolgee/tolgee-platform/commit/881486b0550f4f820668e62fa1542b355088d5fc))
+
+
+### Features
+
+* Add intercom support ([#3315](https://github.com/tolgee/tolgee-platform/issues/3315)) ([5a4d668](https://github.com/tolgee/tolgee-platform/commit/5a4d668dcfeb7f79086a3ee3ac3c0f570774e1f3))
+
+## [3.140.4](https://github.com/tolgee/tolgee-platform/compare/v3.140.3...v3.140.4) (2025-11-14)
+
+
+### Bug Fixes
+
+* Revert "fix: send temperature as 0 for OpenaiApi LLM providers ([#3308](https://github.com/tolgee/tolgee-platform/issues/3308))" ([#3312](https://github.com/tolgee/tolgee-platform/issues/3312)) ([9010a61](https://github.com/tolgee/tolgee-platform/commit/9010a61be18655340f27dc9ffd53bc2f18236e5b))
+
+## [3.140.3](https://github.com/tolgee/tolgee-platform/compare/v3.140.2...v3.140.3) (2025-11-13)
+
+
+### Bug Fixes
+
+* increase length limit for llm provider url and api key ([#3310](https://github.com/tolgee/tolgee-platform/issues/3310)) ([1a475a9](https://github.com/tolgee/tolgee-platform/commit/1a475a97ec6ed53bac90b9a9c815ae2ede53b5f1)), closes [#3295](https://github.com/tolgee/tolgee-platform/issues/3295)
+
+## [3.140.2](https://github.com/tolgee/tolgee-platform/compare/v3.140.1...v3.140.2) (2025-11-13)
+
+
+### Bug Fixes
+
+* limit length of activity changes for diffing ([#3309](https://github.com/tolgee/tolgee-platform/issues/3309)) ([659d8c8](https://github.com/tolgee/tolgee-platform/commit/659d8c8d5efbacc14a80949b5814d479489a5de7)), closes [#3298](https://github.com/tolgee/tolgee-platform/issues/3298)
+
+## [3.140.1](https://github.com/tolgee/tolgee-platform/compare/v3.140.0...v3.140.1) (2025-11-13)
+
+
+### Bug Fixes
+
+* send temperature as 0 for OpenaiApi LLM providers ([#3308](https://github.com/tolgee/tolgee-platform/issues/3308)) ([762621d](https://github.com/tolgee/tolgee-platform/commit/762621d4321f16bafdd088f765eb180d0bf0880f)), closes [#3297](https://github.com/tolgee/tolgee-platform/issues/3297)
+
+# [3.140.0](https://github.com/tolgee/tolgee-platform/compare/v3.139.0...v3.140.0) (2025-11-12)
+
+
+### Features
+
+* Event grouping in PostHog ([#3302](https://github.com/tolgee/tolgee-platform/issues/3302)) ([4a1987c](https://github.com/tolgee/tolgee-platform/commit/4a1987cd24879b9200d7ea26437307cd8d99fe36))
+
+# [3.139.0](https://github.com/tolgee/tolgee-platform/compare/v3.138.2...v3.139.0) (2025-11-12)
+
+
+### Features
+
+* add subscription and org details to Chatwoot support widget ([#3277](https://github.com/tolgee/tolgee-platform/issues/3277)) ([ea8b018](https://github.com/tolgee/tolgee-platform/commit/ea8b018bcb68b6a63d345c33c9baffaac47d459e))
+
+## [3.138.2](https://github.com/tolgee/tolgee-platform/compare/v3.138.1...v3.138.2) (2025-11-07)
+
+
+### Bug Fixes
+
+* update glossary documentation links and temporarily hide import section ([#3278](https://github.com/tolgee/tolgee-platform/issues/3278)) ([1bcaf4e](https://github.com/tolgee/tolgee-platform/commit/1bcaf4e630485b162a18b57d20c55fe647867d61))
+
+## [3.138.1](https://github.com/tolgee/tolgee-platform/compare/v3.138.0...v3.138.1) (2025-11-06)
+
+
+### Bug Fixes
+
+* make extension placeholder for fileStructureTemplate optional ([#3299](https://github.com/tolgee/tolgee-platform/issues/3299)) ([04b5f83](https://github.com/tolgee/tolgee-platform/commit/04b5f8330037472f3113eb10881d6b17153102d3)), closes [#3291](https://github.com/tolgee/tolgee-platform/issues/3291)
+
+# [3.138.0](https://github.com/tolgee/tolgee-platform/compare/v3.137.2...v3.138.0) (2025-11-04)
+
+
+### Features
+
+* glossary import and export ([#3268](https://github.com/tolgee/tolgee-platform/issues/3268)) ([70ac9e6](https://github.com/tolgee/tolgee-platform/commit/70ac9e6296a3dafdb741d6ce21cd1d2457c56713)), closes [#3103](https://github.com/tolgee/tolgee-platform/issues/3103)
+
+## [3.137.2](https://github.com/tolgee/tolgee-platform/compare/v3.137.1...v3.137.2) (2025-11-03)
+
+
+### Bug Fixes
+
+* missing error translation when third party provider doesn't send over user e-mail ([#3293](https://github.com/tolgee/tolgee-platform/issues/3293)) ([202f440](https://github.com/tolgee/tolgee-platform/commit/202f440ed55837d47f7d340caa7871a1dedeff2f))
+
+## [3.137.1](https://github.com/tolgee/tolgee-platform/compare/v3.137.0...v3.137.1) (2025-10-30)
+
+
+### Bug Fixes
+
+* Optimize batch queue population ([#3287](https://github.com/tolgee/tolgee-platform/issues/3287)) ([05bff5e](https://github.com/tolgee/tolgee-platform/commit/05bff5e24329961255507481e12ca841d42f5741))
+
+# [3.137.0](https://github.com/tolgee/tolgee-platform/compare/v3.136.1...v3.137.0) (2025-10-27)
+
+
+### Features
+
+* display language option for Chinese on the UI ([#3249](https://github.com/tolgee/tolgee-platform/issues/3249)) ([9756b8c](https://github.com/tolgee/tolgee-platform/commit/9756b8cae2952f11d66a0070985089044af1b6a7))
+
+## [3.136.1](https://github.com/tolgee/tolgee-platform/compare/v3.136.0...v3.136.1) (2025-10-19)
+
+
+### Bug Fixes
+
+* Plural collisions in structured formats ([#3280](https://github.com/tolgee/tolgee-platform/issues/3280)) ([b2b6f16](https://github.com/tolgee/tolgee-platform/commit/b2b6f16e197b55127e3751a6d4dd7c188afac0cd))
+
+# [3.136.0](https://github.com/tolgee/tolgee-platform/compare/v3.135.0...v3.136.0) (2025-10-17)
+
+
+### Features
+
+* supporter user role ([#3248](https://github.com/tolgee/tolgee-platform/issues/3248)) ([d031bff](https://github.com/tolgee/tolgee-platform/commit/d031bff0b8ed9511ce330ab42be0e8fd982da405)), closes [#3218](https://github.com/tolgee/tolgee-platform/issues/3218)
+
+# [3.135.0](https://github.com/tolgee/tolgee-platform/compare/v3.134.0...v3.135.0) (2025-10-15)
+
+
+### Features
+
+* update openapi-typescript from v4.0.2 to v5.4.2 ([#3264](https://github.com/tolgee/tolgee-platform/issues/3264)) ([c68b109](https://github.com/tolgee/tolgee-platform/commit/c68b109158a9fc818281e4a1f729ee7d241bfe6e))
+
+# [3.134.0](https://github.com/tolgee/tolgee-platform/compare/v3.133.3...v3.134.0) (2025-10-15)
+
+
+### Features
+
+* Added indication to accounts without 2FA ([#3274](https://github.com/tolgee/tolgee-platform/issues/3274)) ([0723e59](https://github.com/tolgee/tolgee-platform/commit/0723e5924fd1bb1e39712b74d998819914c5b5d2))
+
+## [3.133.3](https://github.com/tolgee/tolgee-platform/compare/v3.133.2...v3.133.3) (2025-10-10)
+
+
+### Bug Fixes
+
+* batch job processing ([#3265](https://github.com/tolgee/tolgee-platform/issues/3265)) ([24d2f0c](https://github.com/tolgee/tolgee-platform/commit/24d2f0c49fc4c0024e4d9c8bfb8525426195c1a5))
+
+## [3.133.2](https://github.com/tolgee/tolgee-platform/compare/v3.133.1...v3.133.2) (2025-10-10)
+
+
+### Bug Fixes
+
+* allow disabling accounts of managed users when user cannot be removed - allows owners of organizations with sso to remove users ([#3263](https://github.com/tolgee/tolgee-platform/issues/3263)) ([fa0a37f](https://github.com/tolgee/tolgee-platform/commit/fa0a37f2571568cbaf4a29c7783567bbd181d56b))
+
+## [3.133.1](https://github.com/tolgee/tolgee-platform/compare/v3.133.0...v3.133.1) (2025-10-03)
+
+
+### Bug Fixes
+
+* TranslationSuggestionControllerStreamingTest - spring bug on async processing (ignore test, when it happens) ([#3261](https://github.com/tolgee/tolgee-platform/issues/3261)) ([642aa61](https://github.com/tolgee/tolgee-platform/commit/642aa613e2176e7781f5326c986e76900182d721))
+
+# [3.133.0](https://github.com/tolgee/tolgee-platform/compare/v3.132.4...v3.133.0) (2025-10-01)
+
+
+### Features
+
+* Copy base text icon in translation edit mode changed ([#3258](https://github.com/tolgee/tolgee-platform/issues/3258)) ([0c24f25](https://github.com/tolgee/tolgee-platform/commit/0c24f25238a6e58650ca8808777ff8dd04325674)), closes [#3255](https://github.com/tolgee/tolgee-platform/issues/3255)
+
 ## [3.132.4](https://github.com/tolgee/tolgee-platform/compare/v3.132.3...v3.132.4) (2025-09-24)
 
 

@@ -2,7 +2,11 @@ package io.tolgee.api.v2.controllers.contentDelivery
 
 import io.tolgee.ProjectAuthControllerTest
 import io.tolgee.batch.BatchJobConcurrentLauncher
-import io.tolgee.component.fileStorage.*
+import io.tolgee.component.fileStorage.AzureBlobFileStorage
+import io.tolgee.component.fileStorage.AzureFileStorageFactory
+import io.tolgee.component.fileStorage.FileStorage
+import io.tolgee.component.fileStorage.S3FileStorage
+import io.tolgee.component.fileStorage.S3FileStorageFactory
 import io.tolgee.development.testDataBuilder.data.ContentDeliveryConfigTestData
 import io.tolgee.fixtures.andIsBadRequest
 import io.tolgee.fixtures.andIsOk
@@ -20,7 +24,7 @@ import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.mock.mockito.SpyBean
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 
 @ContextRecreatingTest
 class ContentDeliveryConfigControllerTest : ProjectAuthControllerTest("/v2/projects/") {
@@ -30,11 +34,11 @@ class ContentDeliveryConfigControllerTest : ProjectAuthControllerTest("/v2/proje
   lateinit var contentDeliveryConfigService: ContentDeliveryConfigService
 
   @Autowired
-  @SpyBean
+  @MockitoSpyBean
   private lateinit var s3FileStorageFactory: S3FileStorageFactory
 
   @Autowired
-  @SpyBean
+  @MockitoSpyBean
   private lateinit var azureFileStorageFactory: AzureFileStorageFactory
 
   @Autowired
@@ -131,8 +135,10 @@ class ContentDeliveryConfigControllerTest : ProjectAuthControllerTest("/v2/proje
   }
 
   private fun resetServerProperties() {
-    tolgeeProperties.contentDelivery.storage.s3.clear()
-    tolgeeProperties.contentDelivery.storage.azure.clear()
+    tolgeeProperties.contentDelivery.storage.s3
+      .clear()
+    tolgeeProperties.contentDelivery.storage.azure
+      .clear()
   }
 
   private fun mockS3FileStorage(): S3FileStorage {

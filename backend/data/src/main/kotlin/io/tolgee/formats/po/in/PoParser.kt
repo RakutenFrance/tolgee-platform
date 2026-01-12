@@ -7,7 +7,7 @@ import io.tolgee.formats.po.`in`.data.PoParserResult
 import io.tolgee.model.dataImport.issues.issueTypes.FileIssueType
 import io.tolgee.model.dataImport.issues.paramTypes.FileIssueParamType
 import io.tolgee.service.dataImport.processors.FileProcessorContext
-import java.util.*
+import java.util.Locale
 
 class PoParser(
   private val context: FileProcessorContext,
@@ -51,7 +51,7 @@ class PoParser(
   private fun processHeader(): PoParserMeta {
     val result = PoParserMeta()
     translations.filter { it.msgid.toString() == "" }.forEach {
-      it.msgstr.split("\\n").map { metaLine ->
+      it.msgstr.split("\n").map { metaLine ->
         val trimmed = metaLine.trim()
         if (trimmed.isBlank()) {
           return@map
@@ -126,8 +126,26 @@ class PoParser(
 
   private fun Char.handleOther() {
     if (currentEscaped) {
-      currentSequence.append('\\')
-      currentSequence.append(this)
+      val specialEscape: Char? =
+        if (quoted) {
+          when (this) {
+            'n' -> '\n'
+            'r' -> '\r'
+            't' -> '\t'
+            '"' -> '"'
+            '\\' -> '\\'
+            else -> null
+          }
+        } else {
+          null
+        }
+
+      if (specialEscape != null) {
+        currentSequence.append(specialEscape)
+      } else {
+        currentSequence.append('\\')
+        currentSequence.append(this)
+      }
       return
     }
 
@@ -224,23 +242,28 @@ class PoParser(
         possibleEndTranslationBefore()
         expectMsgId = true
       }
+
       isKeyword("msgid_plural") -> {
         expectMsgIdPlural = true
       }
+
       isKeyword("msgstr") -> {
         expectMsgStr = true
         wasMsgStr = true
       }
+
       isKeyword("msgctxt") -> {
         context.fileEntity.addIssue(
           FileIssueType.PO_MSGCTXT_NOT_SUPPORTED,
           mapOf(FileIssueParamType.LINE to currentLine.toString()),
         )
       }
+
       current.matches("^msgstr\\[\\d+]$".toRegex()) -> {
         wasMsgStr = true
         expectMsgStrPlural = current.replace("^msgstr\\[(\\d+)]$".toRegex(), "$1").toInt()
       }
+
       else -> throw PoParserException("Unknown keyword '$this'", currentLine, currentSequenceStart)
     }
   }

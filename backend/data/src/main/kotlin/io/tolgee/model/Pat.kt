@@ -1,5 +1,6 @@
 package io.tolgee.model
 
+import io.tolgee.security.PAT_PREFIX
 import jakarta.persistence.Entity
 import jakarta.persistence.Index
 import jakarta.persistence.ManyToOne
@@ -10,7 +11,7 @@ import jakarta.persistence.Transient
 import jakarta.persistence.UniqueConstraint
 import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.NotNull
-import java.util.*
+import java.util.Date
 
 @Entity
 @Table(
@@ -41,4 +42,7 @@ class Pat(
   @ManyToOne
   @NotNull
   lateinit var userAccount: UserAccount
+
+  val tokenWithPrefix: String?
+    get() = token?.let { "$PAT_PREFIX$token" }
 }

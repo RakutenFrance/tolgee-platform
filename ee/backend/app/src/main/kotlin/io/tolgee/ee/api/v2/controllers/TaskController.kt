@@ -8,7 +8,16 @@ import io.tolgee.constants.Feature
 import io.tolgee.dtos.request.userAccount.UserAccountPermissionsFilters
 import io.tolgee.ee.api.v2.hateoas.assemblers.TaskModelAssembler
 import io.tolgee.ee.api.v2.hateoas.assemblers.TaskPerUserReportModelAssembler
-import io.tolgee.ee.data.task.*
+import io.tolgee.ee.data.task.CalculateScopeRequest
+import io.tolgee.ee.data.task.CreateMultipleTasksRequest
+import io.tolgee.ee.data.task.CreateTaskRequest
+import io.tolgee.ee.data.task.TaskFilters
+import io.tolgee.ee.data.task.TaskKeysResponse
+import io.tolgee.ee.data.task.TranslationScopeFilters
+import io.tolgee.ee.data.task.UpdateTaskKeyRequest
+import io.tolgee.ee.data.task.UpdateTaskKeyResponse
+import io.tolgee.ee.data.task.UpdateTaskKeysRequest
+import io.tolgee.ee.data.task.UpdateTaskRequest
 import io.tolgee.ee.service.TaskService
 import io.tolgee.hateoas.task.TaskModel
 import io.tolgee.hateoas.task.TaskPerUserReportModel
@@ -22,6 +31,7 @@ import io.tolgee.model.views.TaskWithScopeView
 import io.tolgee.openApiDocs.OpenApiOrderExtension
 import io.tolgee.security.ProjectHolder
 import io.tolgee.security.authentication.AllowApiAccess
+import io.tolgee.security.authentication.ReadOnlyOperation
 import io.tolgee.security.authorization.RequiresFeatures
 import io.tolgee.security.authorization.RequiresOneOfFeatures
 import io.tolgee.security.authorization.RequiresProjectPermissions
@@ -38,7 +48,15 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.CrossOrigin
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @Suppress("MVCPathVariableInspection", "SpringJavaInjectionPointsAutowiringInspection")
@@ -313,6 +331,7 @@ class TaskController(
 
   @PostMapping("/calculate-scope")
   @Operation(summary = "Calculate scope")
+  @ReadOnlyOperation
   @RequiresProjectPermissions([Scope.TASKS_VIEW])
   @AllowApiAccess
   fun calculateScope(

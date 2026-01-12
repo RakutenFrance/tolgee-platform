@@ -1,10 +1,12 @@
 package io.tolgee.component.reporting
 
-import com.posthog.java.PostHog
+import com.posthog.server.PostHog
+import io.tolgee.component.reporting.PostHogGroupIdentifier.Companion.GROUP_TYPE
 import io.tolgee.dtos.cacheable.UserAccountDto
 import io.tolgee.service.organization.OrganizationService
 import io.tolgee.service.project.ProjectService
 import io.tolgee.service.security.UserAccountService
+import io.tolgee.util.filterValueNotNull
 import jakarta.persistence.EntityManager
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Lazy
@@ -19,6 +21,7 @@ class PostHogBusinessEventReporter(
   private val organizationService: OrganizationService,
   private val userAccountService: UserAccountService,
   private val entityManager: EntityManager,
+  private var postHogGroupIdentifier: PostHogGroupIdentifier?,
 ) {
   @Lazy
   @Autowired
@@ -52,19 +55,24 @@ class PostHogBusinessEventReporter(
     val id = data.userAccountDto?.id ?: data.instanceId ?: data.anonymousUserId
     val setEntry = getIdentificationMapForPostHog(data)
 
-    postHog?.capture(
-      id.toString(),
-      data.eventName,
+    val map =
       mapOf(
         "${'$'}groups" to
           mapOf(
             "project" to data.projectDto?.id,
-            "organization" to data.organizationId,
+            GROUP_TYPE to data.organizationId,
           ),
         "organizationId" to data.organizationId,
         "organizationName" to data.organizationName,
-      ) + (data.utmData ?: emptyMap()) + (data.data ?: emptyMap()) + setEntry,
+      ) + (data.utmData ?: emptyMap()) + (data.data ?: emptyMap()) + setEntry
+
+    postHog?.capture(
+      id.toString(),
+      data.eventName,
+      map.filterValueNotNull(),
     )
+
+    postHogGroupIdentifier?.identifyOrganization(organizationId = data.organizationId ?: return)
   }
 
   /**
@@ -123,15 +131,18 @@ class PostHogBusinessEventReporter(
 
   private fun findOwnerUserByOrganizationId(organizationId: Long?): Long? {
     organizationId ?: return null
-    return entityManager.createQuery(
-      """
+    return entityManager
+      .createQuery(
+        """
       select u.id from UserAccount u 
       join u.organizationRoles orl on orl.organization.id = :organizationId
       where orl.type = io.tolgee.model.enums.OrganizationRoleType.OWNER
       order by u.id
       limit 1
     """,
-      Long::class.java,
-    ).setParameter("organizationId", organizationId).resultList.firstOrNull()
+        Long::class.java,
+      ).setParameter("organizationId", organizationId)
+      .resultList
+      .firstOrNull()
   }
 }

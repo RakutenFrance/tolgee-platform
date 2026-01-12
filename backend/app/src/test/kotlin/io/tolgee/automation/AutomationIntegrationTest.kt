@@ -24,19 +24,19 @@ import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.mock.mockito.MockBean
-import java.util.*
+import org.springframework.test.context.bean.override.mockito.MockitoBean
+import java.util.UUID
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class AutomationIntegrationTest : ProjectAuthControllerTest("/v2/projects/") {
-  @MockBean
+  @MockitoBean
   @Autowired
   lateinit var contentDeliveryFileStorageProvider: ContentDeliveryFileStorageProvider
 
   lateinit var fileStorageMock: FileStorage
 
-  @MockBean
+  @MockitoBean
   @Autowired
   lateinit var contentDeliveryCachePurgingProvider: ContentDeliveryCachePurgingProvider
 
@@ -73,8 +73,10 @@ class AutomationIntegrationTest : ProjectAuthControllerTest("/v2/projects/") {
     waitForNotThrowing(pollTime = 200) {
       contentDeliveryConfigService
         .get(testData.defaultServerContentDeliveryConfig.self.id)
-        .lastPublished!!.time
-        .assert.isEqualTo(currentDateProvider.date.time)
+        .lastPublished!!
+        .time
+        .assert
+        .isEqualTo(currentDateProvider.date.time)
     }
   }
 

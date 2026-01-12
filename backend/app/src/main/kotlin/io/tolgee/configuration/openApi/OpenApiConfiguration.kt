@@ -19,11 +19,11 @@ class OpenApiConfiguration {
   fun openAPI(): OpenAPI? {
     return OpenAPI()
       .info(
-        Info().title("Tolgee API")
+        Info()
+          .title("Tolgee API")
           .description("Tolgee Platform REST API reference")
           .version("v1.0"),
-      )
-      .externalDocs(
+      ).externalDocs(
         ExternalDocumentation()
           .description("Tolgee documentation")
           .url("https://tolgee.io"),
@@ -110,7 +110,7 @@ class OpenApiConfiguration {
     return OpenApiGroupBuilder(name) {
       builder.pathsToExclude(*excludedPaths, "/api/project/{$PROJECT_ID_PARAMETER}/sources/**")
       builder.pathsToMatch(*paths)
-      customizeOperations { operation, _, path ->
+      customizeOperations { operation, _, path, _ ->
         val isParameterConsumed =
           operation.isProjectIdConsumed()
         val pathContainsProjectId = path.contains("{$PROJECT_ID_PARAMETER}")
@@ -166,9 +166,10 @@ class OpenApiConfiguration {
     name: String,
   ): GroupedOpenApi? {
     return OpenApiGroupBuilder(name) {
-      builder.pathsToExclude(*excludedPaths)
+      builder
+        .pathsToExclude(*excludedPaths)
         .pathsToMatch(*paths)
-      customizeOperations { operation, handler, path ->
+      customizeOperations { operation, handler, path, _ ->
         if (isApiAccessAllowed(handler)) {
           if (!path.matches(PATH_WITH_PROJECT_ID_REGEX)) {
             if (!containsProjectIdParam(path)) {
@@ -188,9 +189,10 @@ class OpenApiConfiguration {
     name: String,
   ): GroupedOpenApi? {
     return OpenApiGroupBuilder(name) {
-      builder.pathsToExclude(*excludedPaths)
+      builder
+        .pathsToExclude(*excludedPaths)
         .pathsToMatch(*paths)
-      customizeOperations { operation, handler, path ->
+      customizeOperations { operation, handler, path, _ ->
         val isProjectPath = isProjectPath(path)
         val containsProjectIdParam = containsProjectIdParam(path)
         if (isProjectPath && !containsProjectIdParam) {
@@ -230,12 +232,14 @@ class OpenApiConfiguration {
     private const val BILLING_LICENSING = "/v2/**/licensing/**"
     private const val BILLING_TELEMETRY = "/v2/**/telemetry/**"
     private const val BILLING_TRANSLATOR = "/v2/**/translator/**"
+    private const val BILLING_LLM = "/v2/**/llm/**"
     private val BILLING =
       arrayOf(
         BILLING_MAIN,
         BILLING_LICENSING,
         BILLING_TELEMETRY,
         BILLING_TRANSLATOR,
+        BILLING_LLM,
       )
     private val PATH_WITH_PROJECT_ID_REGEX = "^/(?:api|v2)/projects?/\\{$PROJECT_ID_PARAMETER}.*".toRegex()
   }

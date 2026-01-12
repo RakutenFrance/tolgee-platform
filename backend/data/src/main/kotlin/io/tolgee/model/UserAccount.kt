@@ -26,7 +26,7 @@ import jakarta.persistence.Transient
 import jakarta.validation.constraints.NotBlank
 import org.hibernate.annotations.ColumnDefault
 import org.hibernate.annotations.Type
-import java.util.*
+import java.util.Date
 
 @Entity
 @ActivityLoggedEntity
@@ -52,7 +52,10 @@ data class UserAccount(
   @Enumerated(EnumType.STRING)
   @Column(name = "account_type")
   override var accountType: AccountType? = AccountType.LOCAL,
-) : AuditModel(), ModelWithAvatar, IUserAccount, EntityWithId {
+) : AuditModel(),
+  ModelWithAvatar,
+  IUserAccount,
+  EntityWithId {
   @Column(name = "totp_key", columnDefinition = "bytea")
   override var totpKey: ByteArray? = null
 
@@ -164,6 +167,7 @@ data class UserAccount(
   enum class Role {
     USER,
     ADMIN,
+    SUPPORTER,
   }
 
   enum class AccountType {
@@ -174,4 +178,16 @@ data class UserAccount(
 
   @Transient
   override var disableActivityLogging: Boolean = false
+}
+
+fun UserAccount.isAdmin(): Boolean {
+  return role == UserAccount.Role.ADMIN
+}
+
+fun UserAccount.isSupporter(): Boolean {
+  return role == UserAccount.Role.SUPPORTER
+}
+
+fun UserAccount.isSupporterOrAdmin(): Boolean {
+  return role == UserAccount.Role.SUPPORTER || role == UserAccount.Role.ADMIN
 }

@@ -6,7 +6,8 @@ import io.tolgee.exceptions.BadRequestException
 import io.tolgee.service.export.dataProvider.ExportTranslationView
 
 class ExportFileStructureTemplateProvider(
-  val params: IExportParams, translations: List<ExportTranslationView>
+  val params: IExportParams,
+  translations: List<ExportTranslationView>,
 ) {
   fun validateAndGetTemplate(): String {
     validateTemplate()
@@ -44,11 +45,12 @@ class ExportFileStructureTemplateProvider(
 
   private fun validateLanguageTagInTemplate() {
     if (!params.format.multiLanguage) {
-      val containsLanguageTag = arrayOf(
-        ExportFilePathPlaceholder.LANGUAGE_TAG,
-        ExportFilePathPlaceholder.ANDROID_LANGUAGE_TAG,
-        ExportFilePathPlaceholder.SNAKE_LANGUAGE_TAG,
-      ).any { getTemplate().contains(it.placeholder) }
+      val containsLanguageTag =
+        arrayOf(
+          ExportFilePathPlaceholder.LANGUAGE_TAG,
+          ExportFilePathPlaceholder.ANDROID_LANGUAGE_TAG,
+          ExportFilePathPlaceholder.SNAKE_LANGUAGE_TAG,
+        ).any { getTemplate().contains(it.placeholder) }
 
       if (!containsLanguageTag) {
         throw getMissingPlaceholderException(
@@ -62,15 +64,16 @@ class ExportFileStructureTemplateProvider(
 
   private fun validateExtensionInTemplate() {
     val containsExtension = getTemplate().contains(ExportFilePathPlaceholder.EXTENSION.placeholder)
-    if (!containsExtension) {
+    if (!containsExtension && params.format.fileStructureExtensionRequired) {
       throw getMissingPlaceholderException(ExportFilePathPlaceholder.EXTENSION)
     }
   }
 
-  private fun getMissingPlaceholderException(vararg placeholder: ExportFilePathPlaceholder) = BadRequestException(
-    Message.MISSING_PLACEHOLDER_IN_TEMPLATE,
-    placeholder.toList(),
-  )
+  private fun getMissingPlaceholderException(vararg placeholder: ExportFilePathPlaceholder) =
+    BadRequestException(
+      Message.MISSING_PLACEHOLDER_IN_TEMPLATE,
+      placeholder.toList(),
+    )
 
   private val namespaceCount by lazy {
     translations.map { it.key.namespace }.distinct().size

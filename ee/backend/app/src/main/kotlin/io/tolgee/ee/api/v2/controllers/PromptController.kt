@@ -2,14 +2,17 @@ package io.tolgee.ee.api.v2.controllers
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import io.tolgee.activity.RequestActivity
+import io.tolgee.activity.data.ActivityType
 import io.tolgee.component.enabledFeaturesProvider.EnabledFeaturesProvider
 import io.tolgee.component.reporting.BusinessEventPublisher
 import io.tolgee.component.reporting.OnBusinessEventToCaptureEvent
 import io.tolgee.constants.Feature
 import io.tolgee.dtos.request.prompt.PromptDto
 import io.tolgee.dtos.request.prompt.PromptRunDto
-import io.tolgee.dtos.response.prompt.PromptResponseDto
 import io.tolgee.ee.api.v2.hateoas.assemblers.PromptModelAssembler
+import io.tolgee.ee.api.v2.hateoas.model.prompt.PromptResponseModel
+import io.tolgee.ee.api.v2.hateoas.model.prompt.PromptResponseUsageModelAssembler
 import io.tolgee.ee.data.prompt.VariablesResponseDto
 import io.tolgee.ee.service.prompt.DefaultPromptHelper
 import io.tolgee.ee.service.prompt.PromptServiceEeImpl
@@ -27,7 +30,16 @@ import org.springdoc.core.annotations.ParameterObject
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PagedResourcesAssembler
 import org.springframework.hateoas.PagedModel
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.CrossOrigin
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @CrossOrigin(origins = ["*"])
@@ -42,6 +54,7 @@ import org.springframework.web.bind.annotation.*
 class PromptController(
   private val promptService: PromptServiceEeImpl,
   private val promptModelAssembler: PromptModelAssembler,
+  @Suppress("SpringJavaInjectionPointsAutowiringInspection")
   private val arrayResourcesAssembler: PagedResourcesAssembler<Prompt>,
   private val projectHolder: ProjectHolder,
   private val promptVariablesHelper: PromptVariablesHelper,
@@ -49,6 +62,7 @@ class PromptController(
   private val enabledFeaturesProvider: EnabledFeaturesProvider,
   private val businessEventPublisher: BusinessEventPublisher,
   private val authenticationFacade: AuthenticationFacade,
+  private val promptResponseUsageModelAssembler: PromptResponseUsageModelAssembler,
 ) {
   @GetMapping("")
   @RequiresProjectPermissions([Scope.PROMPTS_VIEW])
@@ -71,6 +85,7 @@ class PromptController(
   @PostMapping("")
   @RequiresProjectPermissions([Scope.PROMPTS_EDIT])
   @Operation(summary = "Create prompt")
+  @RequestActivity(ActivityType.AI_PROMPT_CREATE)
   fun createPrompt(
     @RequestBody @Valid dto: PromptDto,
   ): PromptModel {
@@ -106,6 +121,7 @@ class PromptController(
   @PutMapping("/{promptId}")
   @RequiresProjectPermissions([Scope.PROMPTS_EDIT])
   @Operation(summary = "Update prompt")
+  @RequestActivity(ActivityType.AI_PROMPT_UPDATE)
   fun updatePrompt(
     @PathVariable promptId: Long,
     @RequestBody @Valid dto: PromptDto,
@@ -131,6 +147,7 @@ class PromptController(
   @DeleteMapping("/{promptId}")
   @RequiresProjectPermissions([Scope.PROMPTS_EDIT])
   @Operation(summary = "Delete prompt")
+  @RequestActivity(ActivityType.AI_PROMPT_DELETE)
   fun deletePrompt(
     @PathVariable promptId: Long,
   ) {
@@ -149,7 +166,7 @@ class PromptController(
   @Operation(summary = "Run prompt")
   fun run(
     @Valid @RequestBody data: PromptRunDto,
-  ): PromptResponseDto {
+  ): PromptResponseModel {
     businessEventPublisher.publish(
       OnBusinessEventToCaptureEvent(
         eventName = "AI_PROMPT_RUN",
@@ -180,14 +197,14 @@ class PromptController(
       promptService.runPromptAndChargeCredits(
         organizationId,
         params,
-        data.provider
+        data.provider,
       )
-    return PromptResponseDto(
+    return PromptResponseModel(
       prompt,
-      response.response,
+      response.promptResult.response,
       response.parsedJson,
-      price = response.price,
-      usage = response.usage,
+      price = response.promptResult.price,
+      usage = response.promptResult.usage?.let { promptResponseUsageModelAssembler.toModel(it) },
     )
   }
 
@@ -199,8 +216,10 @@ class PromptController(
     @RequestParam targetLanguageId: Long?,
   ): VariablesResponseDto {
     return VariablesResponseDto(
-      promptVariablesHelper.getVariables(projectHolder.project.id, keyId, targetLanguageId)
-        .map { it.toPromptVariableDto() }.toMutableList(),
+      promptVariablesHelper
+        .getVariables(projectHolder.project.id, keyId, targetLanguageId)
+        .map { it.toPromptVariableDto() }
+        .toMutableList(),
     )
   }
 }

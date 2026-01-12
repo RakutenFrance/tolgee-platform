@@ -115,9 +115,12 @@ class AuthenticationFilter(
     if (!authenticationProperties.enabled) {
       SecurityContextHolder.getContext().authentication =
         TolgeeAuthentication(
-          null,
-          initialUser,
-          TolgeeAuthenticationDetails(true),
+          credentials = null,
+          deviceId = null,
+          userAccount = initialUser,
+          actingAsUserAccount = null,
+          isReadOnly = false,
+          isSuperToken = true,
         )
     }
   }
@@ -128,10 +131,12 @@ class AuthenticationFilter(
         // Bypass user validity check
         return
       }
+
       false -> {
         // Always fail user validity check
         throw AuthExpiredException(Message.SSO_CANT_VERIFY_USER)
       }
+
       null -> {
         if (!ssoDelegate.verifyUserSsoAccountAvailable(userDto)) {
           throw AuthExpiredException(Message.SSO_CANT_VERIFY_USER)
@@ -163,9 +168,12 @@ class AuthenticationFilter(
     apiKeyService.updateLastUsedAsync(pak.id)
     SecurityContextHolder.getContext().authentication =
       TolgeeAuthentication(
-        pak,
-        userAccount,
-        TolgeeAuthenticationDetails(false),
+        credentials = pak,
+        deviceId = null,
+        userAccount = userAccount,
+        actingAsUserAccount = null,
+        isReadOnly = false,
+        isSuperToken = false,
       )
   }
 
@@ -188,9 +196,12 @@ class AuthenticationFilter(
     patService.updateLastUsedAsync(pat.id)
     SecurityContextHolder.getContext().authentication =
       TolgeeAuthentication(
-        pat,
-        userAccount,
-        TolgeeAuthenticationDetails(false),
+        credentials = pat,
+        deviceId = null,
+        userAccount = userAccount,
+        actingAsUserAccount = null,
+        isReadOnly = false,
+        isSuperToken = false,
       )
   }
 

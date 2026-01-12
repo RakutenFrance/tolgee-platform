@@ -4,6 +4,8 @@ import io.tolgee.constants.Caches
 import io.tolgee.constants.Message
 import io.tolgee.dtos.cacheable.UserAccountDto
 import io.tolgee.dtos.cacheable.UserOrganizationRoleDto
+import io.tolgee.dtos.cacheable.isAdmin
+import io.tolgee.dtos.cacheable.isSupporterOrAdmin
 import io.tolgee.dtos.request.organization.SetOrganizationRoleDto
 import io.tolgee.dtos.request.validators.exceptions.ValidationException
 import io.tolgee.exceptions.NotFoundException
@@ -28,16 +30,17 @@ import org.springframework.transaction.annotation.Transactional
 import java.util.EnumSet
 
 @Service
+@Suppress("SelfReferenceConstructorParameter")
 class OrganizationRoleService(
   private val organizationRoleRepository: OrganizationRoleRepository,
   private val authenticationFacade: AuthenticationFacade,
   private val userAccountService: UserAccountService,
-  @Lazy
+  @param:Lazy
   private val permissionService: PermissionService,
   private val organizationRepository: OrganizationRepository,
-  @Lazy
+  @param:Lazy
   private val userPreferencesService: UserPreferencesService,
-  @Suppress("SelfReferenceConstructorParameter") @Lazy
+  @param:Lazy
   private val self: OrganizationRoleService,
   private val cacheManager: CacheManager,
 ) {
@@ -48,20 +51,18 @@ class OrganizationRoleService(
 
   fun checkUserCanView(organizationId: Long) {
     checkUserCanView(
-      authenticationFacade.authenticatedUser.id,
+      authenticationFacade.authenticatedUser,
       organizationId,
-      authenticationFacade.authenticatedUser.role == UserAccount.Role.ADMIN,
     )
   }
 
   private fun checkUserCanView(
-    userId: Long,
+    user: UserAccountDto,
     organizationId: Long,
-    isAdmin: Boolean = false,
   ) {
-    if (!isAdmin &&
+    if (!user.isSupporterOrAdmin() &&
       !canUserViewStrict(
-        userId,
+        user.id,
         organizationId,
       )
     ) {
@@ -83,7 +84,7 @@ class OrganizationRoleService(
   fun canUserView(
     user: UserAccountDto,
     organizationId: Long,
-  ) = user.role === UserAccount.Role.ADMIN || this.organizationRepository.canUserView(user.id, organizationId)
+  ) = user.isSupporterOrAdmin() || this.organizationRepository.canUserView(user.id, organizationId)
 
   /**
    * Verifies the user has a role equal or higher than a given role.
@@ -112,55 +113,42 @@ class OrganizationRoleService(
     }
   }
 
-  fun checkUserIsOwner(
-    userId: Long,
-    organizationId: Long,
-  ) {
-    val isServerAdmin = userAccountService.getDto(userId).role == UserAccount.Role.ADMIN
-    if (this.isUserOwner(
-        userId,
-        organizationId,
-      ) || isServerAdmin
-    ) {
-      return
-    } else {
-      throw PermissionException(Message.USER_IS_NOT_OWNER_OF_ORGANIZATION)
-    }
-  }
-
-  fun checkUserIsOwnerOrMaintainer(
-    userId: Long,
-    organizationId: Long,
-  ) {
-    val isServerAdmin = userAccountService.getDto(userId).role == UserAccount.Role.ADMIN
-    if (this.isUserOwnerOrMaintainer(
-        userId,
-        organizationId,
-      ) || isServerAdmin
-    ) {
-      return
-    } else {
-      throw PermissionException(Message.USER_IS_NOT_OWNER_OR_MAINTAINER_OF_ORGANIZATION)
-    }
-  }
-
-  fun checkUserIsOwner(organizationId: Long) {
-    this.checkUserIsOwner(authenticationFacade.authenticatedUser.id, organizationId)
-  }
-
-  fun checkUserIsOwnerOrMaintainer(organizationId: Long) {
-    this.checkUserIsOwnerOrMaintainer(authenticationFacade.authenticatedUser.id, organizationId)
-  }
-
-  fun checkUserIsMember(
-    userId: Long,
-    organizationId: Long,
-  ) {
-    val isServerAdmin = userAccountService.getDto(userId).role == UserAccount.Role.ADMIN
-    if (hasAnyOrganizationRole(userId, organizationId) || isServerAdmin) {
+  fun checkUserIsOwnerOrServerAdmin(organizationId: Long) {
+    val user = authenticationFacade.authenticatedUser
+    if (this.isUserOwner(user.id, organizationId)) {
       return
     }
-    throw PermissionException(Message.USER_IS_NOT_MEMBER_OF_ORGANIZATION)
+
+    if (user.isAdmin()) {
+      return
+    }
+
+    throw PermissionException(Message.USER_IS_NOT_OWNER_OF_ORGANIZATION)
+  }
+
+  fun checkUserCanDeleteInvitation(organizationId: Long) {
+    checkUserIsOwnerOrServerAdmin(organizationId)
+  }
+
+  fun checkUserCanTransferProjectToOrganization(organizationId: Long) {
+    checkUserIsOwnerOrServerAdmin(organizationId)
+  }
+
+  fun checkUserIsOwnerOrMaintainerOrServerAdmin(organizationId: Long) {
+    val user = authenticationFacade.authenticatedUser
+    if (this.isUserOwnerOrMaintainer(user.id, organizationId)) {
+      return
+    }
+
+    if (user.isAdmin()) {
+      return
+    }
+
+    throw PermissionException(Message.USER_IS_NOT_OWNER_OR_MAINTAINER_OF_ORGANIZATION)
+  }
+
+  fun checkUserCanCreateProject(organizationId: Long) {
+    this.checkUserIsOwnerOrMaintainerOrServerAdmin(organizationId)
   }
 
   fun hasAnyOrganizationRole(
@@ -260,7 +248,7 @@ class OrganizationRoleService(
   }
 
   fun leave(organizationId: Long) {
-    this.removeUser(authenticationFacade.authenticatedUser.id, organizationId)
+    self.removeUser(authenticationFacade.authenticatedUser.id, organizationId)
   }
 
   @Transactional
@@ -268,10 +256,55 @@ class OrganizationRoleService(
     userId: Long,
     organizationId: Long,
   ) {
-    val managedBy = getManagedBy(userId)
-    if (managedBy != null && managedBy.id == organizationId) {
+    if (!canRemoveUser(userId, organizationId)) {
       throw ValidationException(Message.USER_IS_MANAGED_BY_ORGANIZATION)
     }
+
+    removeUserForReal(userId, organizationId)
+  }
+
+  @Transactional
+  fun removeOrDeactivateUser(
+    userId: Long,
+    organizationId: Long,
+  ) {
+    if (!canRemoveUser(userId, organizationId)) {
+      userAccountService.disable(userId)
+      return
+    }
+
+    removeUserForReal(userId, organizationId)
+  }
+
+  /**
+   * Checks if a user is managed by the organization.
+   * We can't remove managed users from their organization.
+   */
+  private fun canRemoveUser(
+    userId: Long,
+    organizationId: Long,
+  ): Boolean {
+    val managedBy = getManagedBy(userId)
+    val isManaged = managedBy != null
+
+    if (!isManaged) {
+      // Not managed by any organization
+      return true
+    }
+
+    if (managedBy.id != organizationId) {
+      // Managed by another organization
+      return true
+    }
+
+    // User is managed by the organization - we can't remove them
+    return false
+  }
+
+  private fun removeUserForReal(
+    userId: Long,
+    organizationId: Long,
+  ) {
     val role =
       organizationRoleRepository.findOneByUserIdAndOrganizationId(userId, organizationId)?.let {
         organizationRoleRepository.delete(it)

@@ -20,23 +20,23 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.RestTemplate
-import java.util.*
+import java.util.Date
 
 @Transactional
 class AuthTest : AbstractControllerTest() {
   @Autowired
   private val publicController: PublicController? = null
 
-  @MockBean
+  @MockitoBean
   @Autowired
   private val restTemplate: RestTemplate? = null
 
@@ -83,16 +83,18 @@ class AuthTest : AbstractControllerTest() {
   fun userWithTokenHasAccess() {
     val response =
       doAuthentication(initialUsername, initialPassword)
-        .andReturn().response.contentAsString
+        .andReturn()
+        .response.contentAsString
     val token = mapper.readValue(response, HashMap::class.java)["accessToken"] as String?
     val mvcResult =
-      mvc.perform(
-        MockMvcRequestBuilders.get("/api/projects")
-          .accept(MediaType.ALL)
-          .header("Authorization", String.format("Bearer %s", token))
-          .contentType(MediaType.APPLICATION_JSON),
-      )
-        .andReturn()
+      mvc
+        .perform(
+          MockMvcRequestBuilders
+            .get("/api/projects")
+            .accept(MediaType.ALL)
+            .header("Authorization", String.format("Bearer %s", token))
+            .contentType(MediaType.APPLICATION_JSON),
+        ).andReturn()
     assertThat(mvcResult.response.status).isEqualTo(200)
   }
 
@@ -108,12 +110,14 @@ class AuthTest : AbstractControllerTest() {
     currentDateProvider.forcedDate = baseline
 
     val mvcResult =
-      mvc.perform(
-        MockMvcRequestBuilders.get("/api/projects")
-          .accept(MediaType.ALL)
-          .header("Authorization", String.format("Bearer %s", token))
-          .contentType(MediaType.APPLICATION_JSON),
-      ).andReturn()
+      mvc
+        .perform(
+          MockMvcRequestBuilders
+            .get("/api/projects")
+            .accept(MediaType.ALL)
+            .header("Authorization", String.format("Bearer %s", token))
+            .contentType(MediaType.APPLICATION_JSON),
+        ).andReturn()
 
     assertThat(mvcResult.response.status).isEqualTo(401)
     assertThat(mvcResult.response.contentAsString).contains(Message.EXPIRED_JWT_TOKEN.code)
@@ -257,27 +261,30 @@ class AuthTest : AbstractControllerTest() {
   @Test
   fun `super token endpoints require super token`() {
     val admin = userAccountService[initialUsername]
-    var token = jwtService.emitToken(admin.id, false)
+    var token = jwtService.emitToken(admin.id, isSuper = false)
     assertExpired(token)
 
     val baseline = Date()
     val newDate = baseline.time - tolgeeProperties.authentication.jwtSuperExpiration - 10_000
 
     setForcedDate(Date(newDate))
-    token = jwtService.emitToken(admin.id, true)
+    token = jwtService.emitToken(admin.id, isSuper = true)
     setForcedDate(baseline)
 
     assertExpired(token)
   }
 
   private fun assertExpired(token: String) {
-    mvc.perform(
-      MockMvcRequestBuilders.put("/v2/projects/${project.id}/users/${project.id}/revoke-access")
-        .accept(MediaType.ALL)
-        .header("Authorization", String.format("Bearer %s", token))
-        .contentType(MediaType.APPLICATION_JSON),
-    ).andIsForbidden.andAssertThatJson {
-      node("code").isEqualTo(Message.EXPIRED_SUPER_JWT_TOKEN.code)
-    }
+    mvc
+      .perform(
+        MockMvcRequestBuilders
+          .put("/v2/projects/${project.id}/users/${project.id}/revoke-access")
+          .accept(MediaType.ALL)
+          .header("Authorization", String.format("Bearer %s", token))
+          .contentType(MediaType.APPLICATION_JSON),
+      ).andIsForbidden
+      .andAssertThatJson {
+        node("code").isEqualTo(Message.EXPIRED_SUPER_JWT_TOKEN.code)
+      }
   }
 }

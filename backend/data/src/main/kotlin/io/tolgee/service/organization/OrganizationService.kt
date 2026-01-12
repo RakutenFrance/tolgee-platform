@@ -17,6 +17,7 @@ import io.tolgee.model.UserAccount
 import io.tolgee.model.enums.OrganizationRoleType
 import io.tolgee.model.enums.ProjectPermissionType
 import io.tolgee.model.enums.ThirdPartyAuthType
+import io.tolgee.model.isAdmin
 import io.tolgee.repository.OrganizationRepository
 import io.tolgee.security.authentication.AuthenticationFacade
 import io.tolgee.service.AvatarService
@@ -134,11 +135,13 @@ class OrganizationService(
     userAccountId: Long,
     exceptOrganizationId: Long = 0,
   ): Organization? {
-    return organizationRepository.findPreferred(
-      userId = userAccountId,
-      exceptOrganizationId,
-      PageRequest.of(0, 1),
-    ).content.firstOrNull()
+    return organizationRepository
+      .findPreferred(
+        userId = userAccountId,
+        exceptOrganizationId,
+        PageRequest.of(0, 1),
+      ).content
+      .firstOrNull()
   }
 
   /**
@@ -153,7 +156,7 @@ class OrganizationService(
         tolgeeProperties.authentication.userCanCreateOrganizations &&
           userAccount.thirdPartyAuthType !== ThirdPartyAuthType.SSO
 
-      if (canCreateOrganizations || userAccount.role == UserAccount.Role.ADMIN) {
+      if (canCreateOrganizations || userAccount.isAdmin()) {
         return@let createPreferred(userAccount)
       }
       null
@@ -345,12 +348,6 @@ class OrganizationService(
    * Returns all organizations which are owned only by the specified user
    */
   fun getAllSingleOwnedByUser(userAccount: UserAccount) = organizationRepository.getAllSingleOwnedByUser(userAccount)
-
-  fun getOrganizationAndCheckUserIsOwner(organizationId: Long): Organization {
-    val organization = this.get(organizationId)
-    organizationRoleService.checkUserIsOwner(organization.id)
-    return organization
-  }
 
   @Caching(
     evict = [

@@ -10,11 +10,16 @@ import org.springframework.stereotype.Repository
 @Lazy
 interface LlmProviderRepository : JpaRepository<LlmProvider, Long> {
   @Query(
-      """
+    """
     from LlmProvider p
     where
       p.organization.id = :organizationId
     """,
   )
   fun getAll(organizationId: Long): List<LlmProvider>
+
+  fun deleteByIdAndOrganizationId(
+    id: Long,
+    organizationId: Long,
+  )
 }

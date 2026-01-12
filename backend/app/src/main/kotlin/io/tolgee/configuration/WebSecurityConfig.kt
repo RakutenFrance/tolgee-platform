@@ -18,9 +18,11 @@ package io.tolgee.configuration
 
 import io.tolgee.component.ExceptionHandlerFilter
 import io.tolgee.component.TransferEncodingHeaderDebugFilter
+import io.tolgee.security.authentication.AdminAccessInterceptor
 import io.tolgee.security.authentication.AuthenticationFilter
 import io.tolgee.security.authentication.AuthenticationInterceptor
 import io.tolgee.security.authentication.EmailValidationInterceptor
+import io.tolgee.security.authentication.ReadOnlyModeInterceptor
 import io.tolgee.security.authentication.SsoAuthenticationInterceptor
 import io.tolgee.security.authorization.FeatureAuthorizationInterceptor
 import io.tolgee.security.authorization.OrganizationAuthorizationInterceptor
@@ -36,7 +38,7 @@ import org.springframework.context.annotation.Lazy
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.security.config.Customizer
-import org.springframework.security.config.annotation.ObjectPostProcessor
+import org.springframework.security.config.ObjectPostProcessor
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
@@ -64,6 +66,10 @@ class WebSecurityConfig(
   private val emailValidationInterceptor: EmailValidationInterceptor,
   @Lazy
   private val ssoAuthenticationInterceptor: SsoAuthenticationInterceptor,
+  @Lazy
+  private val readOnlyModeInterceptor: ReadOnlyModeInterceptor,
+  @Lazy
+  private val adminAccessInterceptor: AdminAccessInterceptor,
   @Lazy
   private val organizationAuthorizationInterceptor: OrganizationAuthorizationInterceptor,
   @Lazy
@@ -94,7 +100,7 @@ class WebSecurityConfig(
           },
         )
         it.requestMatchers(*PUBLIC_ENDPOINTS).permitAll()
-        it.requestMatchers("/v2/administration/**", "/v2/ee-license/**").hasRole("ADMIN")
+        it.requestMatchers(*ADMIN_ENDPOINTS).hasRole("SUPPORTER")
         it.requestMatchers("/api/**", "/v2/**").authenticated()
         it.anyRequest().permitAll()
       }.headers { headers ->
@@ -115,25 +121,32 @@ class WebSecurityConfig(
   fun internalSecurityFilterChain(httpSecurity: HttpSecurity): SecurityFilterChain {
     return httpSecurity
       .securityMatcher(*INTERNAL_ENDPOINTS)
-      .authorizeRequests()
-      .anyRequest()
-      .denyAll()
-      .and()
+      .authorizeHttpRequests { it.anyRequest().denyAll() }
       .build()
   }
 
   override fun addInterceptors(registry: InterceptorRegistry) {
     registry.addInterceptor(rateLimitInterceptor)
     registry.addInterceptor(authenticationInterceptor)
-    registry.addInterceptor(emailValidationInterceptor)
+    registry
+      .addInterceptor(ssoAuthenticationInterceptor)
       .excludePathPatterns(*PUBLIC_ENDPOINTS, *INTERNAL_ENDPOINTS)
-    registry.addInterceptor(ssoAuthenticationInterceptor)
+    registry
+      .addInterceptor(emailValidationInterceptor)
       .excludePathPatterns(*PUBLIC_ENDPOINTS, *INTERNAL_ENDPOINTS)
 
-    registry.addInterceptor(organizationAuthorizationInterceptor)
-      .addPathPatterns("/v2/organizations/**")
-    registry.addInterceptor(projectAuthorizationInterceptor)
-      .addPathPatterns("/v2/projects/**", "/api/project/**", "/api/repository/**")
+    registry
+      .addInterceptor(organizationAuthorizationInterceptor)
+      .addPathPatterns(*ORGANIZATION_ENDPOINTS)
+    registry
+      .addInterceptor(projectAuthorizationInterceptor)
+      .addPathPatterns(*PROJECT_ENDPOINTS)
+    registry
+      .addInterceptor(adminAccessInterceptor)
+      .addPathPatterns(*ADMIN_ENDPOINTS)
+    registry
+      .addInterceptor(readOnlyModeInterceptor)
+      .excludePathPatterns(*PUBLIC_ENDPOINTS, *INTERNAL_ENDPOINTS)
     registry.addInterceptor(featureAuthorizationInterceptor)
   }
 
@@ -156,6 +169,9 @@ class WebSecurityConfig(
         "/screenshots/**",
         "/uploaded-images/**",
       )
+    private val ADMIN_ENDPOINTS = arrayOf("/v2/administration/**", "/v2/ee-license/**")
     private val INTERNAL_ENDPOINTS = arrayOf("/internal/**")
+    private val PROJECT_ENDPOINTS = arrayOf("/v2/projects/**", "/api/project/**", "/api/repository/**")
+    private val ORGANIZATION_ENDPOINTS = arrayOf("/v2/organizations/**")
   }
 }

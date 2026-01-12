@@ -15,7 +15,7 @@ import io.tolgee.activity.ActivityService
 import io.tolgee.activity.RequestActivity
 import io.tolgee.activity.data.ActivityType
 import io.tolgee.api.v2.controllers.IController
-import io.tolgee.component.ProjectTranslationLastModifiedManager
+import io.tolgee.component.ProjectLastModifiedManager
 import io.tolgee.constants.Message
 import io.tolgee.dtos.queryResults.TranslationHistoryView
 import io.tolgee.dtos.request.translation.GetTranslationsParams
@@ -57,7 +57,6 @@ import org.springframework.data.domain.Sort
 import org.springframework.data.web.PagedResourcesAssembler
 import org.springframework.data.web.SortDefault
 import org.springframework.hateoas.PagedModel
-import org.springframework.http.CacheControl
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.WebDataBinder
@@ -73,7 +72,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.context.request.WebRequest
-import java.util.concurrent.TimeUnit
 
 @Suppress("MVCPathVariableInspection", "SpringJavaInjectionPointsAutowiringInspection")
 @RestController
@@ -102,10 +100,10 @@ class TranslationsController(
   private val authenticationFacade: AuthenticationFacade,
   private val screenshotService: ScreenshotService,
   private val activityService: ActivityService,
-  private val projectTranslationLastModifiedManager: ProjectTranslationLastModifiedManager,
   private val createOrUpdateTranslationsFacade: CreateOrUpdateTranslationsFacade,
   private val taskService: ITaskService,
   private val translationSuggestionService: TranslationSuggestionService,
+  private val projectLastModifiedManager: ProjectLastModifiedManager,
 ) : IController {
   @GetMapping(value = ["/{languages}"])
   @Operation(
@@ -162,17 +160,11 @@ When null, resulting file will be a flat key-value object.
     filterTag: List<String>? = null,
     request: WebRequest,
   ): ResponseEntity<Map<String, Any>>? {
-    val lastModified: Long = projectTranslationLastModifiedManager.getLastModified(projectHolder.project.id)
+    return projectLastModifiedManager.onlyWhenProjectDataChanged(request) {
+      val permittedTags =
+        securityService
+          .filterViewPermissionByTag(projectId = projectHolder.project.id, languageTags = languages)
 
-    if (request.checkNotModified(lastModified)) {
-      return null
-    }
-
-    val permittedTags =
-      securityService
-        .filterViewPermissionByTag(projectId = projectHolder.project.id, languageTags = languages)
-
-    val response =
       translationService.getTranslations(
         languageTags = permittedTags,
         namespace = ns,
@@ -180,13 +172,7 @@ When null, resulting file will be a flat key-value object.
         structureDelimiter = request.getStructureDelimiter(),
         filterTag = filterTag,
       )
-
-    return ResponseEntity.ok()
-      .lastModified(lastModified)
-      .cacheControl(CacheControl.maxAge(0, TimeUnit.SECONDS))
-      .body(
-        response,
-      )
+    }
   }
 
   @PutMapping("")
@@ -312,14 +298,15 @@ When null, resulting file will be a flat key-value object.
   private fun addSuggestionsToResponse(
     projectId: Long,
     data: Page<KeyWithTranslationsView>,
-    languageIds: Collection<Long>
+    languageIds: Collection<Long>,
   ) {
     val keyIds = data.content.map { key -> key.keyId }
-    val keysWithSuggestions = translationSuggestionService.getKeysWithSuggestions(
-      projectId,
-      keyIds,
-      languageIds.toList()
-    )
+    val keysWithSuggestions =
+      translationSuggestionService.getKeysWithSuggestions(
+        projectId,
+        keyIds,
+        languageIds.toList(),
+      )
     data.content.forEach { key ->
       key.translations.forEach { (tag, translation) ->
         translation.suggestions = keysWithSuggestions[Pair(key.keyId, tag)]

@@ -80,6 +80,7 @@ enum class ActivityType(
   GLOSSARY_CREATE,
   GLOSSARY_UPDATE,
   GLOSSARY_DELETE(restrictEntitiesInList = arrayOf(Glossary::class)),
+  GLOSSARY_IMPORT(true),
   GLOSSARY_TERM_CREATE,
   GLOSSARY_TERM_UPDATE,
   GLOSSARY_TERM_DELETE(onlyCountsInList = true),
@@ -95,4 +96,7 @@ enum class ActivityType(
   REVERSE_SUGGESTION,
   DELETE_SUGGESTION,
   SUGGESTION_SET_ACTIVE,
+  AI_PROMPT_CREATE,
+  AI_PROMPT_UPDATE,
+  AI_PROMPT_DELETE,
 }

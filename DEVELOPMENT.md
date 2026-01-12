@@ -9,6 +9,7 @@
 
 ```shell
 git clone --depth 1 git@github.com:tolgee/tolgee-platform.git
+git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
 ## Run the stack
@@ -23,6 +24,7 @@ git clone --depth 1 git@github.com:tolgee/tolgee-platform.git
    * With the prepared Idea run configuration `Frontend localhost`
    * With command line:
      ```shell
+     npm --prefix library ci
      cd webapp && npm ci && npm run start
      ```
 3. Open your browser and go to http://localhost:3000.
@@ -60,6 +62,10 @@ spring:
 tolgee:
   front-end-url: http://localhost:3000
   file-storage-url: http://localhost:8080
+  authentication: # to see "Server administration", "Organization settings" etc.
+    enabled: true
+    initial-username: admin
+    initial-password: 123123
 ```
 
 You can check `application-e2e.yaml` for further inspiration.
@@ -107,6 +113,8 @@ On the backend, there is Gradle task `ktlintFormat`, which helps you to format K
 ```shell
 ./gradlew ktlintFormat
 ```
+
+On IntelliJ, you can install the Ktlint plugin to get the editor to format the code correctly.
 
 ## Using current translations from the Tolgee app
 

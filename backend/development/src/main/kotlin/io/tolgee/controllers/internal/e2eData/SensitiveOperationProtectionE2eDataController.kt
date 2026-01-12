@@ -9,7 +9,7 @@ import io.tolgee.security.authentication.JwtService
 import io.tolgee.service.security.MfaService
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.GetMapping
-import java.util.*
+import java.util.Date
 
 @InternalController(["internal/e2e-data/sensitive-operation-protection"])
 class SensitiveOperationProtectionE2eDataController(
@@ -26,14 +26,14 @@ class SensitiveOperationProtectionE2eDataController(
 
     val baseline = currentDateProvider.date
     currentDateProvider.forcedDate = Date(baseline.time - authenticationProperties.jwtSuperExpiration - 10_000)
-    val expiredToken = jwtService.emitToken(data.franta.id, true)
+    val expiredToken = jwtService.emitToken(data.franta.id, isSuper = true)
     currentDateProvider.forcedDate = null
 
     return mapOf(
       "frantasProjectId" to data.frantasProject.id,
       "pepasProjectId" to data.pepasProject.id,
       "frantaExpiredSuperJwt" to expiredToken,
-      "pepaExpiredSuperJwt" to jwtService.emitToken(data.pepa.id, false),
+      "pepaExpiredSuperJwt" to jwtService.emitToken(data.pepa.id, isSuper = false),
     )
   }
 

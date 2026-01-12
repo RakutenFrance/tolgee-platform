@@ -42,6 +42,12 @@ class ProgressManager(
     return batchJobStateProvider.updateState(batchJobId) {
       if (canRunFn(it)) {
         if (it[executionId] != null) {
+          val currentState = it[executionId]
+          // Don't overwrite terminal states
+          if (currentState?.status?.completed == true) {
+            return@updateState false
+          }
+          currentState?.status = BatchJobChunkExecutionStatus.RUNNING
           return@updateState true
         }
         it[executionId] =
@@ -111,7 +117,8 @@ class ProgressManager(
     val isJobCompleted = state.all { it.value.transactionCommitted && it.value.status.completed }
     logger.debug {
       val incompleteExecutions =
-        state.filter { !(it.value.transactionCommitted && it.value.status.completed) }
+        state
+          .filter { !(it.value.transactionCommitted && it.value.status.completed) }
           .map { it.key }
           .joinToString(", ")
       "Is job ${execution.batchJob.id} " +

@@ -13,7 +13,8 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
-import java.util.*
+import java.util.Date
+import java.util.Optional
 
 private const val USER_FILTERS = """
     (
@@ -200,6 +201,7 @@ interface UserAccountRepository : JpaRepository<UserAccount, Long> {
         like lower(concat('%', cast(:search as text),'%')) 
         or lower(ua.username) like lower(concat('%', cast(:search as text),'%'))) or cast(:search as text) is null)
         and ua.deletedAt is null
+        and ua.disabledAt is null
         group by ua.id, mr.type
       """,
   )
@@ -223,6 +225,7 @@ interface UserAccountRepository : JpaRepository<UserAccount, Long> {
         like lower(concat('%', cast(:search as text),'%'))
         or lower(ua.username) like lower(concat('%', cast(:search as text),'%'))) or cast(:search as text) is null)
         and ua.deletedAt is null
+        and ua.disabledAt is null
         and $USER_FILTERS
     """,
   )

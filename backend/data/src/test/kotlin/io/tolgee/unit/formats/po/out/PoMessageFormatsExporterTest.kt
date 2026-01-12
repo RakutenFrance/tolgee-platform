@@ -26,7 +26,7 @@ class PoMessageFormatsExporterTest {
     |"MIME-Version: 1.0\n"
     |"Content-Type: text/plain; charset=UTF-8\n"
     |"Content-Transfer-Encoding: 8bit\n"
-    |"Plural-Forms: nplurals=3; plural=(n === 1 ? 0 : (n >= 2 && n <= 4) ? 1 : 2)\n"
+    |"Plural-Forms: nplurals=3; plural=(n == 1 ? 0 : (n >= 2 && n <= 4) ? 1 : 2)\n"
     |"X-Generator: Tolgee\n"
     |
     |msgid "key3"
@@ -49,7 +49,7 @@ class PoMessageFormatsExporterTest {
     |"MIME-Version: 1.0\n"
     |"Content-Type: text/plain; charset=UTF-8\n"
     |"Content-Transfer-Encoding: 8bit\n"
-    |"Plural-Forms: nplurals=3; plural=(n === 1 ? 0 : (n >= 2 && n <= 4) ? 1 : 2)\n"
+    |"Plural-Forms: nplurals=3; plural=(n == 1 ? 0 : (n >= 2 && n <= 4) ? 1 : 2)\n"
     |"X-Generator: Tolgee\n"
     |
     |msgid "key3"
@@ -72,7 +72,7 @@ class PoMessageFormatsExporterTest {
     |"MIME-Version: 1.0\n"
     |"Content-Type: text/plain; charset=UTF-8\n"
     |"Content-Transfer-Encoding: 8bit\n"
-    |"Plural-Forms: nplurals=3; plural=(n === 1 ? 0 : (n >= 2 && n <= 4) ? 1 : 2)\n"
+    |"Plural-Forms: nplurals=3; plural=(n == 1 ? 0 : (n >= 2 && n <= 4) ? 1 : 2)\n"
     |"X-Generator: Tolgee\n"
     |
     |msgid "key3"
@@ -94,18 +94,20 @@ class PoMessageFormatsExporterTest {
 
     val baseLanguageMock = mock<ILanguage>()
     whenever(baseLanguageMock.tag).thenAnswer { "en" }
-    val params = ExportParams().also {
-      it.messageFormat = importFormat
-    }
+    val params =
+      ExportParams().also {
+        it.messageFormat = importFormat
+      }
     return PoFileExporter(
       translations = built.translations,
       exportParams = params,
       baseLanguage = baseLanguageMock,
       projectIcuPlaceholdersSupport = true,
-      filePathProvider = ExportFilePathProvider(
-        template = "{languageTag}.{extension}",
-        extension = "po",
-      )
+      filePathProvider =
+        ExportFilePathProvider(
+          template = "{languageTag}.{extension}",
+          extension = "po",
+        ),
     )
   }
 }

@@ -1,9 +1,19 @@
 package io.tolgee.model
 
+import io.tolgee.configuration.tolgee.machineTranslation.LlmProperties.LlmProvider.Companion.MAX_TOKENS_DEFAULT
 import io.tolgee.dtos.LlmProviderDto
 import io.tolgee.model.enums.LlmProviderPriority
 import io.tolgee.model.enums.LlmProviderType
-import jakarta.persistence.*
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.Index
+import jakarta.persistence.ManyToOne
+import jakarta.persistence.Table
 import jakarta.validation.constraints.NotBlank
 
 @Entity()
@@ -23,7 +33,9 @@ class LlmProvider(
   var type: LlmProviderType = LlmProviderType.OPENAI,
   @field:Enumerated(EnumType.STRING)
   var priority: LlmProviderPriority? = null,
+  @Column(length = 511)
   var apiKey: String? = null,
+  @Column(length = 2047)
   var apiUrl: String = "",
   var model: String? = null,
   var deployment: String? = null,
@@ -48,6 +60,7 @@ class LlmProvider(
       attempts = null,
       tokenPriceInCreditsInput = null,
       tokenPriceInCreditsOutput = null,
+      maxTokens = MAX_TOKENS_DEFAULT,
     )
   }
 }

@@ -24,13 +24,13 @@ import org.junit.jupiter.api.TestMethodOrder
 import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.mock.mockito.MockBean
-import org.springframework.boot.test.mock.mockito.SpyBean
 import org.springframework.http.HttpMethod
 import org.springframework.test.context.TestPropertySource
+import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 import org.springframework.web.client.RestTemplate
 import java.time.Duration
-import java.util.*
+import java.util.Date
 import kotlin.reflect.jvm.javaMethod
 
 @SpringBootTest
@@ -61,14 +61,14 @@ class ScheduledUsageReportingTest : AbstractSpringTest() {
   @Autowired
   private lateinit var tolgeeCloudLicencingClientStub: TolgeeCloudLicencingClientStub
 
-  @MockBean
+  @MockitoBean
   @Autowired
   lateinit var restTemplate: RestTemplate
 
   private lateinit var eeLicenseMockRequestUtil: EeLicensingMockRequestUtil
 
   @Autowired
-  @SpyBean
+  @MockitoSpyBean
   private lateinit var scheduledReportingManager: ScheduledReportingManager
 
   @BeforeEach
@@ -90,10 +90,13 @@ class ScheduledUsageReportingTest : AbstractSpringTest() {
   @Order(1)
   fun `it schedules on startup`() {
     val invocations =
-      Mockito.mockingDetails(scheduledReportingManager)
+      Mockito
+        .mockingDetails(scheduledReportingManager)
         .invocations
-    invocations.filter { it.method == ScheduledReportingManager::scheduleReporting.javaMethod }
-      .assert.hasSize(1)
+    invocations
+      .filter { it.method == ScheduledReportingManager::scheduleReporting.javaMethod }
+      .assert
+      .hasSize(1)
   }
 
   @Test

@@ -95,11 +95,14 @@ class Translation(
   @JoinTable(
     name = "translation_label",
     joinColumns = [JoinColumn(name = "translation_id")],
-    inverseJoinColumns = [JoinColumn(name = "label_id")]
+    inverseJoinColumns = [JoinColumn(name = "label_id")],
   )
   @OrderBy("name ASC")
   @ActivityLoggedProp(LabelPropChangesProvider::class)
   var labels: MutableSet<Label> = mutableSetOf()
+
+  @ActivityLoggedProp
+  var promptId: Long? = null
 
   val isUntranslated: Boolean
     get() = state == TranslationState.UNTRANSLATED
@@ -113,6 +116,7 @@ class Translation(
     this.outdated = false
     this.mtProvider = null
     this.auto = false
+    this.promptId = null
   }
 
   fun clear() {
@@ -192,7 +196,8 @@ class Translation(
           translation.state = TranslationState.TRANSLATED
         }
         if (translation.text.isNullOrEmpty() &&
-          translation.state != TranslationState.UNTRANSLATED && translation.state != TranslationState.DISABLED
+          translation.state != TranslationState.UNTRANSLATED &&
+          translation.state != TranslationState.DISABLED
         ) {
           translation.state = TranslationState.UNTRANSLATED
         }

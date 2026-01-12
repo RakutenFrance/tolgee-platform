@@ -17,14 +17,14 @@ import net.javacrumbs.jsonunit.assertj.assertThatJson
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.HttpMethod
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.web.client.RestTemplate
-import java.util.*
+import java.util.Date
 
 class EeSubscriptionUsageControllerTest : AuthorizedControllerTest() {
   @Autowired
-  @MockBean
+  @MockitoBean
   lateinit var restTemplate: RestTemplate
 
   lateinit var testData: BaseTestData
@@ -72,7 +72,8 @@ class EeSubscriptionUsageControllerTest : AuthorizedControllerTest() {
 
       verify {
         performAuthGet("/v2/ee-current-subscription-usage")
-          .andIsOk.andAssertThatJson {
+          .andIsOk
+          .andAssertThatJson {
             node("seats") {
               node("current").isEqualTo(0)
               node("included").isEqualTo(10)
@@ -96,7 +97,10 @@ class EeSubscriptionUsageControllerTest : AuthorizedControllerTest() {
             node("isPayAsYouGo").isEqualTo(true)
           }
 
-        val body = this.captor.allValues.single().body!!
+        val body =
+          this.captor.allValues
+            .single()
+            .body!!
         assertThatJson(body) {
           node("licenseKey").isEqualTo("mock")
         }

@@ -12,6 +12,7 @@ import io.tolgee.openApiDocs.OpenApiUnstableOperationExtension
 import io.tolgee.security.OrganizationHolder
 import io.tolgee.security.ProjectHolder
 import io.tolgee.security.authentication.AllowApiAccess
+import io.tolgee.security.authentication.ReadOnlyOperation
 import io.tolgee.security.authorization.RequiresFeatures
 import io.tolgee.security.authorization.RequiresProjectPermissions
 import jakarta.validation.Valid
@@ -33,6 +34,7 @@ class GlossaryTermHighlightsController(
 ) {
   @PostMapping
   @Operation(summary = "Returns glossary term highlights for specified text")
+  @ReadOnlyOperation
   @RequiresProjectPermissions([Scope.TRANSLATIONS_VIEW])
   @AllowApiAccess
   @RequiresFeatures(Feature.GLOSSARY)
@@ -40,12 +42,13 @@ class GlossaryTermHighlightsController(
     @RequestBody @Valid
     dto: GlossaryHighlightsRequest,
   ): CollectionModel<GlossaryTermHighlightModel> {
-    val highlights = glossaryTermService.getHighlights(
-      organizationHolder.organization.id,
-      projectHolder.project.id,
-      dto.text,
-      dto.languageTag,
-    )
+    val highlights =
+      glossaryTermService.getHighlights(
+        organizationHolder.organization.id,
+        projectHolder.project.id,
+        dto.text,
+        dto.languageTag,
+      )
     return modelAssembler.toCollectionModel(highlights)
   }
 }

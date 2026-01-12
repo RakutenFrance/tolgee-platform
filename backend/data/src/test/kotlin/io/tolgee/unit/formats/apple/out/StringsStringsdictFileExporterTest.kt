@@ -28,6 +28,8 @@ class StringsStringsdictFileExporterTest {
       """
     |"key" = "Hello! I am great today! There you have some params %lld, %@, %e, %f";
     |
+    |"key" = "String\nwith\nnewlines";
+    |
     |
       """.trimMargin(),
     )
@@ -53,6 +55,22 @@ class StringsStringsdictFileExporterTest {
     |        <string>%lld day</string>
     |        <key>other</key>
     |        <string>%lld days</string>
+    |      </dict>
+    |    </dict>
+    |    <key>plural_numbered_placeholders</key>
+    |    <dict>
+    |      <key>NSStringLocalizedFormatKey</key>
+    |      <string>%#@format@</string>
+    |      <key>format</key>
+    |      <dict>
+    |        <key>NSStringFormatSpecTypeKey</key>
+    |        <string>NSStringPluralRuleType</string>
+    |        <key>NSStringFormatValueTypeKey</key>
+    |        <string>lld</string>
+    |        <key>one</key>
+    |        <string>Today we had a very nice workout at %2${'$'}@, where we did one push up.</string>
+    |        <key>other</key>
+    |        <string>Today we had a very nice workout at %2${'$'}@, where we did %3${'$'}@ push ups.</string>
     |      </dict>
     |    </dict>
     |  </dict>
@@ -334,6 +352,13 @@ class StringsStringsdictFileExporterTest {
         ),
         ExportTranslationView(
           1,
+          "String\nwith\nnewlines",
+          TranslationState.TRANSLATED,
+          ExportKeyView(1, "key"),
+          "en",
+        ),
+        ExportTranslationView(
+          1,
           "Namespaced",
           TranslationState.TRANSLATED,
           ExportKeyView(1, "key", namespace = "homepage"),
@@ -367,6 +392,13 @@ class StringsStringsdictFileExporterTest {
           ExportKeyView(1, "escaping_singular"),
           "cs",
         ),
+        ExportTranslationView(
+          1,
+          "{value, plural, one {Today we had a very nice workout at {1}, where we did one push up.} other {Today we had a very nice workout at {1}, where we did {2} push ups.}}",
+          TranslationState.TRANSLATED,
+          ExportKeyView(1, "plural_numbered_placeholders", isPlural = true),
+          "en",
+        ),
       ),
       params = params,
     )
@@ -381,31 +413,16 @@ class StringsStringsdictFileExporterTest {
       translations = translations,
       exportParams = params,
       isProjectIcuPlaceholdersEnabled = isProjectIcuPlaceholdersEnabled,
-      stringsFilePathProvider = ExportFilePathProvider(
-        template = template,
-        extension = "strings",
-      ),
-      stringsdictFilePathProvider = ExportFilePathProvider(
-        template = template,
-        extension = "stringsdict",
-      ),
-    )
-  }
-
-  private fun getExporter(translations: List<ExportTranslationView>): AppleStringsStringsdictExporter {
-    val params = getExportParams()
-    val template = ExportFileStructureTemplateProvider(params, translations).validateAndGetTemplate()
-    return AppleStringsStringsdictExporter(
-      translations = translations,
-      exportParams = params,
-      stringsFilePathProvider = ExportFilePathProvider(
-        template = template,
-        extension = "strings",
-      ),
-      stringsdictFilePathProvider = ExportFilePathProvider(
-        template = template,
-        extension = "stringsdict",
-      ),
+      stringsFilePathProvider =
+        ExportFilePathProvider(
+          template = template,
+          extension = "strings",
+        ),
+      stringsdictFilePathProvider =
+        ExportFilePathProvider(
+          template = template,
+          extension = "stringsdict",
+        ),
     )
   }
 

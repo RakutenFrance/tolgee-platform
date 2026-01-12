@@ -16,16 +16,11 @@ interface GlossaryTermTranslationRepository : JpaRepository<GlossaryTermTranslat
     """
     select distinct t.languageTag
     from GlossaryTermTranslation t
-    where t.term.glossary.id = :glossaryId
-      and t.term.glossary.organizationOwner.id = :organizationId
-      and t.term.glossary.organizationOwner.deletedAt is null
+    where t.term.glossary = :glossary
     order by t.languageTag asc
     """,
   )
-  fun findDistinctLanguageTagsByGlossary(
-    organizationId: Long,
-    glossaryId: Long,
-  ): Set<String>
+  fun findDistinctLanguageTagsByGlossary(glossary: Glossary): Set<String>
 
   @Query(
     """

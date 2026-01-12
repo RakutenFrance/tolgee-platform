@@ -1,6 +1,6 @@
 package io.tolgee.controllers.resetPassword
 
-import com.posthog.java.PostHog
+import io.tolgee.config.TestEmailConfiguration
 import io.tolgee.development.testDataBuilder.data.BaseTestData
 import io.tolgee.dtos.request.auth.ResetPasswordRequest
 import io.tolgee.fixtures.EmailTestUtil
@@ -12,11 +12,11 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
-import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.context.annotation.Import
 
 @AutoConfigureMockMvc
-class ResetPasswordControllerTest :
-  AbstractControllerTest() {
+@Import(TestEmailConfiguration::class)
+class ResetPasswordControllerTest : AbstractControllerTest() {
   private var defaultFrontendUrl: String? = null
 
   @BeforeEach
@@ -36,10 +36,6 @@ class ResetPasswordControllerTest :
 
   @Autowired
   private lateinit var emailTestUtil: EmailTestUtil
-
-  @MockBean
-  @Autowired
-  lateinit var postHog: PostHog
 
   @Test
   fun `email contains correct callback url with frontend url provided`() {

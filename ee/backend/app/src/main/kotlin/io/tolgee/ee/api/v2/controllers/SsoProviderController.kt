@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import io.tolgee.constants.Feature
 import io.tolgee.constants.Message
+import io.tolgee.dtos.cacheable.isAdmin
 import io.tolgee.dtos.sso.SsoTenantDto
 import io.tolgee.dtos.sso.toDto
 import io.tolgee.ee.api.v2.hateoas.assemblers.SsoTenantAssembler
@@ -12,7 +13,6 @@ import io.tolgee.exceptions.BadRequestException
 import io.tolgee.exceptions.NotFoundException
 import io.tolgee.hateoas.ee.SsoTenantModel
 import io.tolgee.model.SsoTenant
-import io.tolgee.model.UserAccount
 import io.tolgee.model.enums.OrganizationRoleType
 import io.tolgee.security.authentication.AuthenticationFacade
 import io.tolgee.security.authentication.RequiresSuperAuthentication
@@ -21,7 +21,13 @@ import io.tolgee.security.authorization.RequiresOrganizationRole
 import io.tolgee.service.TenantService
 import io.tolgee.service.organization.OrganizationService
 import jakarta.validation.Valid
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.CrossOrigin
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @CrossOrigin(origins = ["*"])
@@ -46,7 +52,7 @@ class SsoProviderController(
   ): SsoTenantModel {
     validateProvider(request)
 
-    val isAdmin = authenticationFacade.authenticatedUser.role == UserAccount.Role.ADMIN
+    val isAdmin = authenticationFacade.authenticatedUser.isAdmin()
     val organization = organizationService.get(organizationId)
     return ssoTenantAssembler.toModel(
       tenantService.createOrUpdate(request.toDto(), organization, allowChangeDomain = isAdmin).toDto(),

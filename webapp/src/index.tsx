@@ -14,7 +14,6 @@ import { QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { SnackbarProvider } from 'notistack';
 import 'reflect-metadata';
-import 'regenerator-runtime/runtime';
 
 import { GlobalLoading, LoadingProvider } from 'tg.component/GlobalLoading';
 import { GlobalErrorModal } from 'tg.component/GlobalErrorModal';
@@ -25,10 +24,13 @@ import ErrorBoundary from './component/ErrorBoundary';
 import { FullPageLoading } from './component/common/FullPageLoading';
 import { ThemeProvider } from './ThemeProvider';
 
-import { MuiLocalizationProvider } from 'tg.component/MuiLocalizationProvider';
+import { MuiLocalizationProvider } from '@tginternal/library/components/MuiLocalizationProvider';
 import { languageStorage, queryClient } from './initialSetup';
 import { GlobalStyles } from './GlobalStyles';
 import { branchName } from './branch.json';
+import { showConsoleHello } from './showConsoleHello';
+
+showConsoleHello();
 
 function getFeatureName(branch: string) {
   const parts = branch.split('/');
@@ -55,6 +57,7 @@ const tolgee = Tolgee()
       pt: () => import('./i18n/pt.json').then((m) => m.default),
       da: () => import('./i18n/da.json').then((m) => m.default),
       ja: () => import('./i18n/ja.json').then((m) => m.default),
+      zh: () => import('./i18n/zh.json').then((m) => m.default),
     },
   });
 

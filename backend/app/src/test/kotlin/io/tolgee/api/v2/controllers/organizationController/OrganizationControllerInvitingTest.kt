@@ -2,11 +2,18 @@ package io.tolgee.api.v2.controllers.organizationController
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import io.tolgee.config.TestEmailConfiguration
 import io.tolgee.dtos.misc.CreateOrganizationInvitationParams
 import io.tolgee.dtos.request.organization.OrganizationDto
 import io.tolgee.dtos.request.organization.OrganizationInviteUserDto
 import io.tolgee.exceptions.BadRequestException
-import io.tolgee.fixtures.*
+import io.tolgee.fixtures.EmailTestUtil
+import io.tolgee.fixtures.andAssertThatJson
+import io.tolgee.fixtures.andGetContentAsString
+import io.tolgee.fixtures.andIsBadRequest
+import io.tolgee.fixtures.andIsOk
+import io.tolgee.fixtures.andPrettyPrint
+import io.tolgee.fixtures.satisfies
 import io.tolgee.model.Organization
 import io.tolgee.model.enums.OrganizationRoleType
 import io.tolgee.testing.AuthorizedControllerTest
@@ -17,9 +24,11 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(TestEmailConfiguration::class)
 class OrganizationControllerInvitingTest : AuthorizedControllerTest() {
   companion object {
     private const val INVITED_EMAIL = "jon@doe.com"
@@ -57,7 +66,8 @@ class OrganizationControllerInvitingTest : AuthorizedControllerTest() {
         )
       loginAsUser("hellouser")
       performAuthGet("/v2/organizations/${organization.id}/invitations")
-        .andIsOk.andAssertThatJson {
+        .andIsOk
+        .andAssertThatJson {
           node("_embedded.organizationInvitations").let { projectsNode ->
             projectsNode.isArray.hasSize(1)
             projectsNode.node("[0].id").isEqualTo(invitation.id)

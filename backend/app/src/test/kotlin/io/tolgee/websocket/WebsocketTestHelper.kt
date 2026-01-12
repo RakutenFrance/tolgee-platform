@@ -1,5 +1,6 @@
 package io.tolgee.websocket
 
+import io.tolgee.fixtures.WaitNotSatisfiedException
 import io.tolgee.fixtures.waitFor
 import io.tolgee.util.Logging
 import io.tolgee.util.logger
@@ -18,7 +19,12 @@ import java.lang.reflect.Type
 import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
 
-class WebsocketTestHelper(val port: Int?, val jwtToken: String, val projectId: Long, val userId: Long) : Logging {
+class WebsocketTestHelper(
+  val port: Int?,
+  val auth: Auth,
+  val projectId: Long,
+  val userId: Long,
+) : Logging {
   private var sessionHandler: MySessionHandler? = null
   lateinit var receivedMessages: LinkedBlockingDeque<String>
 
@@ -48,12 +54,22 @@ class WebsocketTestHelper(val port: Int?, val jwtToken: String, val projectId: L
     webSocketStompClient.messageConverter = SimpleMessageConverter()
     sessionHandler = MySessionHandler(path, receivedMessages)
     connection =
-      webSocketStompClient.connectAsync(
-        "http://localhost:$port/websocket",
-        WebSocketHttpHeaders(),
-        StompHeaders().apply { add("jwtToken", jwtToken) },
-        sessionHandler!!,
-      ).get(10, TimeUnit.SECONDS)
+      webSocketStompClient
+        .connectAsync(
+          "http://localhost:$port/websocket",
+          WebSocketHttpHeaders(),
+          getAuthHeaders(),
+          sessionHandler!!,
+        ).get(10, TimeUnit.SECONDS)
+  }
+
+  private fun getAuthHeaders(): StompHeaders {
+    return StompHeaders().apply {
+      when {
+        auth.jwtToken != null -> add("jwtToken", auth.jwtToken)
+        auth.apiKey != null -> add("x-api-key", auth.apiKey)
+      }
+    }
   }
 
   fun stop() {
@@ -68,11 +84,18 @@ class WebsocketTestHelper(val port: Int?, val jwtToken: String, val projectId: L
     logger.info("Stopped websocket listener")
   }
 
-  private class MySessionHandler(
+  class MySessionHandler(
     val dest: String,
     val receivedMessages: LinkedBlockingDeque<String>,
-  ) : StompSessionHandlerAdapter(), Logging {
+  ) : StompSessionHandlerAdapter(),
+    Logging {
     var subscription: StompSession.Subscription? = null
+    var authenticationStatus: AuthenticationStatus? = null
+
+    enum class AuthenticationStatus {
+      UNAUTHENTICATED,
+      FORBIDDEN,
+    }
 
     override fun afterConnected(
       session: StompSession,
@@ -109,6 +132,9 @@ class WebsocketTestHelper(val port: Int?, val jwtToken: String, val projectId: L
       stompHeaders: StompHeaders,
       o: Any?,
     ) {
+      handleForbidden(stompHeaders)
+      handleUnauthenticated(stompHeaders)
+
       logger.info(
         "Handle Frame with stompHeaders: '{}' and payload: '{}'",
         stompHeaders,
@@ -124,6 +150,18 @@ class WebsocketTestHelper(val port: Int?, val jwtToken: String, val projectId: L
         receivedMessages.add(o.decodeToString())
       } catch (e: InterruptedException) {
         throw RuntimeException(e)
+      }
+    }
+
+    private fun handleForbidden(stompHeaders: StompHeaders) {
+      if (stompHeaders.get("message")?.single() == "Forbidden") {
+        authenticationStatus = AuthenticationStatus.FORBIDDEN
+      }
+    }
+
+    private fun handleUnauthenticated(stompHeaders: StompHeaders) {
+      if (stompHeaders.get("message")?.single() == "Unauthenticated") {
+        authenticationStatus = AuthenticationStatus.UNAUTHENTICATED
       }
     }
   }
@@ -142,5 +180,35 @@ class WebsocketTestHelper(val port: Int?, val jwtToken: String, val projectId: L
     }
     assertCallback(receivedMessages)
     stop()
+  }
+
+  fun waitForForbidden() {
+    waitForAuthenticationStatus(MySessionHandler.AuthenticationStatus.FORBIDDEN)
+  }
+
+  fun waitForUnauthenticated() {
+    waitForAuthenticationStatus(MySessionHandler.AuthenticationStatus.UNAUTHENTICATED)
+  }
+
+  fun waitForAuthenticationStatus(status: MySessionHandler.AuthenticationStatus) {
+    try {
+      waitFor(500) {
+        sessionHandler?.authenticationStatus == status
+      }
+    } catch (e: WaitNotSatisfiedException) {
+      logger.info("Authentication status was not $status, was: ${sessionHandler?.authenticationStatus}")
+      throw e
+    }
+  }
+
+  data class Auth(
+    val jwtToken: String? = null,
+    val apiKey: String? = null,
+  ) {
+    init {
+      if ((jwtToken == null && apiKey == null) || (jwtToken != null && apiKey != null)) {
+        throw IllegalArgumentException("Either jwtToken or apiKey must be provided")
+      }
+    }
   }
 }

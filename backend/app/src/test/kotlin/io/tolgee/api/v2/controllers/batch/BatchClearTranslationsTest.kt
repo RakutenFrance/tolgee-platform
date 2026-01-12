@@ -1,6 +1,7 @@
 package io.tolgee.api.v2.controllers.batch
 
 import io.tolgee.ProjectAuthControllerTest
+import io.tolgee.config.BatchJobBaseConfiguration
 import io.tolgee.fixtures.andIsOk
 import io.tolgee.fixtures.waitForNotThrowing
 import io.tolgee.model.enums.TranslationState
@@ -9,7 +10,9 @@ import io.tolgee.testing.assert
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.annotation.Import
 
+@Import(BatchJobBaseConfiguration::class)
 class BatchClearTranslationsTest : ProjectAuthControllerTest("/v2/projects/") {
   @Autowired
   lateinit var batchJobTestBase: BatchJobTestBase
@@ -31,7 +34,9 @@ class BatchClearTranslationsTest : ProjectAuthControllerTest("/v2/projects/") {
 
     val allKeyIds = keys.map { it.id }.toList()
     val keyIds = allKeyIds.take(10)
-    val allLanguageIds = testData.projectBuilder.data.languages.map { it.self.id }
+    val allLanguageIds =
+      testData.projectBuilder.data.languages
+        .map { it.self.id }
     val languagesToClearIds = listOf(testData.germanLanguage.id, testData.englishLanguage.id)
 
     performProjectAuthPost(

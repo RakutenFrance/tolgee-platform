@@ -8,8 +8,6 @@ import io.tolgee.hateoas.language.LanguageModelAssembler
 import io.tolgee.hateoas.organization.SimpleOrganizationModelAssembler
 import io.tolgee.hateoas.permission.ComputedPermissionModelAssembler
 import io.tolgee.hateoas.permission.PermissionModelAssembler
-import io.tolgee.model.Project_.translationProtection
-import io.tolgee.model.UserAccount
 import io.tolgee.model.views.ProjectWithLanguagesView
 import io.tolgee.security.authentication.AuthenticationFacade
 import io.tolgee.service.AvatarService
@@ -71,7 +69,7 @@ class ProjectModelAssembler(
       view.organizationRole,
       view.organizationOwner.basePermission,
       view.directPermission,
-      UserAccount.Role.USER,
-    ).getAdminPermissions(authenticationFacade.authenticatedUserOrNull?.role)
+      authenticationFacade.authenticatedUserOrNull?.role,
+    )
   }
 }

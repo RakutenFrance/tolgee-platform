@@ -4,6 +4,8 @@ import io.tolgee.constants.Message
 import io.tolgee.dtos.ComputedPermissionDto
 import io.tolgee.dtos.cacheable.ApiKeyDto
 import io.tolgee.dtos.cacheable.UserAccountDto
+import io.tolgee.dtos.cacheable.isAdmin
+import io.tolgee.dtos.cacheable.isSupporterOrAdmin
 import io.tolgee.exceptions.LanguageNotPermittedException
 import io.tolgee.exceptions.NotFoundException
 import io.tolgee.exceptions.PermissionException
@@ -23,7 +25,6 @@ import io.tolgee.service.task.ITaskService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
-import kotlin.collections.forEach
 
 @Service
 class SecurityService(
@@ -51,7 +52,7 @@ class SecurityService(
   fun checkAnyProjectPermission(projectId: Long) {
     if (
       getProjectPermissionScopesNoApiKey(projectId).isNullOrEmpty() &&
-      !isCurrentUserServerAdmin()
+      !activeUser.isSupporterOrAdmin()
     ) {
       throw PermissionException(Message.USER_HAS_NO_PROJECT_ACCESS)
     }
@@ -71,24 +72,40 @@ class SecurityService(
    */
   fun getCurrentPermittedScopes(projectId: Long): Set<Scope> {
     val projectScopes =
-      Scope.expand(
-        getProjectPermissionScopesNoApiKey(projectId, authenticationFacade.authenticatedUser.id),
-      ).toSet()
+      Scope
+        .expand(
+          getProjectPermissionScopesNoApiKey(projectId, authenticationFacade.authenticatedUser.id),
+        ).toSet()
     val apiKey = activeApiKey ?: return projectScopes
 
     return Scope.expand(apiKey.scopes).toSet().intersect(projectScopes.toSet())
   }
 
+  /**
+   * Checks if the user has required permission for the project. If no user or API key is provided,
+   * uses the currently authenticated user and active API key.
+   * Always checks permissions for the current user even when using the API key for security reasons.
+   *
+   */
   fun checkProjectPermission(
     projectId: Long,
     requiredPermission: Scope,
+    user: UserAccountDto? = null,
+    apiKey: ApiKeyDto? = null,
   ) {
+    val user = user ?: activeUser
     // Always check for the current user even if we're using an API key for security reasons.
     // This prevents improper preservation of permissions.
-    checkProjectPermissionNoApiKey(projectId, requiredPermission, activeUser)
+    checkProjectPermissionNoApiKey(projectId, requiredPermission, user)
 
-    val apiKey = activeApiKey ?: return
-    checkProjectPermission(projectId, requiredPermission, apiKey)
+    val apiKey = apiKey ?: activeApiKey
+    apiKey ?: return
+
+    if (apiKey.projectId != projectId) {
+      throw PermissionException(Message.PAK_CREATED_FOR_DIFFERENT_PROJECT)
+    }
+
+    this.checkApiKeyScopes(listOf(requiredPermission), apiKey)
   }
 
   fun hasTaskEditScopeOrIsAssigned(
@@ -134,27 +151,17 @@ class SecurityService(
     return assignees.isNotEmpty() && assignees[0].id == activeUser.id
   }
 
-  fun checkProjectPermission(
-    projectId: Long,
-    requiredScopes: Scope,
-    apiKey: ApiKeyDto,
-  ) {
-    checkProjectPermission(listOf(requiredScopes), apiKey)
-  }
-
-  private fun checkProjectPermission(
-    requiredScopes: List<Scope>,
-    apiKey: ApiKeyDto,
-  ) {
-    this.checkApiKeyScopes(requiredScopes, apiKey)
-  }
-
   fun checkProjectPermissionNoApiKey(
     projectId: Long,
     requiredScope: Scope,
     userAccountDto: UserAccountDto,
   ) {
-    if (isUserAdmin(userAccountDto)) {
+    if (userAccountDto.isAdmin()) {
+      return
+    }
+
+    val isReadonlyAccess = requiredScope.isReadOnly()
+    if (isReadonlyAccess && userAccountDto.isSupporterOrAdmin()) {
       return
     }
 
@@ -182,10 +189,12 @@ class SecurityService(
     languageTags: Collection<String>,
   ) {
     checkProjectPermission(projectId, Scope.TRANSLATIONS_VIEW)
-    checkLanguagePermissionByTag(
-      projectId,
-      languageTags,
-    ) { data, languageIds -> data.checkViewPermitted(*languageIds.toLongArray()) }
+    runIfUserNotServerSupporterOrAdmin {
+      checkLanguagePermissionByTag(
+        projectId,
+        languageTags,
+      ) { data, languageIds -> data.checkViewPermitted(*languageIds.toLongArray()) }
+    }
   }
 
   fun checkLanguageTranslatePermissionByTag(
@@ -193,21 +202,12 @@ class SecurityService(
     languageTags: Collection<String>,
   ) {
     checkProjectPermission(projectId, Scope.TRANSLATIONS_EDIT)
-    checkLanguagePermissionByTag(
-      projectId,
-      languageTags,
-    ) { data, languageIds -> data.checkTranslatePermitted(*languageIds.toLongArray()) }
-  }
-
-  fun checkStateEditPermissionByTag(
-    projectId: Long,
-    languageTags: Collection<String>,
-  ) {
-    checkProjectPermission(projectId, Scope.TRANSLATIONS_STATE_EDIT)
-    checkLanguagePermissionByTag(
-      projectId,
-      languageTags,
-    ) { data, languageIds -> data.checkTranslatePermitted(*languageIds.toLongArray()) }
+    runIfUserNotServerAdmin {
+      checkLanguagePermissionByTag(
+        projectId,
+        languageTags,
+      ) { data, languageIds -> data.checkTranslatePermitted(*languageIds.toLongArray()) }
+    }
   }
 
   fun checkLanguageSuggestPermission(
@@ -215,9 +215,11 @@ class SecurityService(
     languageIds: Collection<Long>,
   ) {
     checkProjectPermission(projectId, Scope.TRANSLATIONS_SUGGEST)
-    checkLanguagePermission(
-      projectId,
-    ) { data -> data.checkSuggestPermitted(*languageIds.toLongArray()) }
+    runIfUserNotServerAdmin {
+      checkLanguagePermission(
+        projectId,
+      ) { data -> data.checkSuggestPermitted(*languageIds.toLongArray()) }
+    }
   }
 
   fun checkLanguageViewPermission(
@@ -225,9 +227,11 @@ class SecurityService(
     languageIds: Collection<Long>,
   ) {
     checkProjectPermission(projectId, Scope.TRANSLATIONS_VIEW)
-    checkLanguagePermission(
-      projectId,
-    ) { data -> data.checkViewPermitted(*languageIds.toLongArray()) }
+    runIfUserNotServerSupporterOrAdmin {
+      checkLanguagePermission(
+        projectId,
+      ) { data -> data.checkViewPermitted(*languageIds.toLongArray()) }
+    }
   }
 
   private fun translationsInTask(
@@ -236,10 +240,7 @@ class SecurityService(
     languageIds: Collection<Long>,
     keyId: Long? = null,
   ): Boolean {
-    checkProjectPermission(projectId, Scope.TRANSLATIONS_VIEW)
-    checkLanguagePermission(
-      projectId,
-    ) { data -> data.checkViewPermitted(*languageIds.toLongArray()) }
+    checkLanguageViewPermission(projectId, languageIds)
 
     if (keyId != null && languageIds.isNotEmpty()) {
       languageIds.forEach {
@@ -261,19 +262,25 @@ class SecurityService(
     passIfAnyPermissionCheckSucceeds(
       {
         checkProjectPermission(projectId, Scope.TRANSLATIONS_EDIT)
-        checkLanguagePermission(
-          projectId,
-        ) { data -> data.checkTranslatePermitted(*languageIds.toLongArray()) }
+        runIfUserNotServerAdmin {
+          checkLanguagePermission(
+            projectId,
+          ) { data -> data.checkTranslatePermitted(*languageIds.toLongArray()) }
+        }
       },
       {
         if (!translationsInTask(projectId, TaskType.TRANSLATE, languageIds, keyId)) {
           throw PermissionException(Message.OPERATION_NOT_PERMITTED)
         }
-      }
+      },
     )
   }
 
-  fun canEditReviewedTranslation(projectId: Long, languageId: Long, keyId: Long? = null): Boolean {
+  fun canEditReviewedTranslation(
+    projectId: Long,
+    languageId: Long,
+    keyId: Long? = null,
+  ): Boolean {
     if (projectHolder.project.translationProtection != TranslationProtection.PROTECT_REVIEWED) {
       return true
     }
@@ -292,9 +299,11 @@ class SecurityService(
   ) {
     try {
       checkProjectPermission(projectId, Scope.TRANSLATIONS_STATE_EDIT)
-      checkLanguagePermission(
-        projectId,
-      ) { data -> data.checkStateChangePermitted(*languageIds.toLongArray()) }
+      runIfUserNotServerAdmin {
+        checkLanguagePermission(
+          projectId,
+        ) { data -> data.checkStateChangePermitted(*languageIds.toLongArray()) }
+      }
     } catch (e: PermissionException) {
       if (!translationsInTask(projectId, TaskType.REVIEW, languageIds, keyId)) {
         throw e
@@ -334,9 +343,6 @@ class SecurityService(
     projectId: Long,
     permissionCheckFn: (data: ComputedPermissionDto) -> Unit,
   ) {
-    if (isCurrentUserServerAdmin()) {
-      return
-    }
     val usersPermission =
       permissionService.getProjectPermissionData(
         projectId,
@@ -430,18 +436,13 @@ class SecurityService(
     checkProjectPermission(projectId, Scope.TRANSLATIONS_EDIT)
   }
 
-  fun checkApiKeyScopes(
-    scopes: Set<Scope>,
-    apiKey: ApiKeyDto,
-  ) {
-    checkApiKeyScopes(apiKey) { expandedScopes ->
-      if (!expandedScopes.toList().containsAll(scopes)) {
-        val missingScopes = scopes.filter { !expandedScopes.contains(it) }
-        throw PermissionException(missingScopes = missingScopes)
-      }
-    }
-  }
-
+  /**
+   * Checks if API key has required scopes.
+   *
+   * It does not check whether the user has the permission to use all the scope. This needs to be done separately.
+   *
+   * If you need to check both, use [checkProjectPermission] function.
+   */
   fun checkApiKeyScopes(
     scopes: Collection<Scope>,
     apiKey: ApiKeyDto,
@@ -511,7 +512,10 @@ class SecurityService(
     }
   }
 
-  fun checkImageUploadPermissions(projectId: Long, images: List<UploadedImage>) {
+  fun checkImageUploadPermissions(
+    projectId: Long,
+    images: List<UploadedImage>,
+  ) {
     if (images.isNotEmpty()) {
       checkScreenshotsUploadPermission(projectId)
     }
@@ -544,12 +548,16 @@ class SecurityService(
     }
   }
 
-  private fun isCurrentUserServerAdmin(): Boolean {
-    return isUserAdmin(activeUser)
+  private fun runIfUserNotServerAdmin(runnable: () -> Unit) {
+    if (!activeUser.isAdmin()) {
+      runnable()
+    }
   }
 
-  private fun isUserAdmin(user: UserAccountDto): Boolean {
-    return user.role == UserAccount.Role.ADMIN
+  private fun runIfUserNotServerSupporterOrAdmin(runnable: () -> Unit) {
+    if (!activeUser.isSupporterOrAdmin()) {
+      runnable()
+    }
   }
 
   private val activeUser: UserAccountDto

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import io.tolgee.configuration.tolgee.machineTranslation.LlmProviderInterface
 import io.tolgee.dtos.LlmParams
 import io.tolgee.dtos.PromptResult
-import io.tolgee.dtos.response.prompt.PromptResponseUsageDto
 import io.tolgee.exceptions.LlmEmptyResponseException
 import io.tolgee.util.Logging
 import org.springframework.beans.factory.config.ConfigurableBeanFactory
@@ -19,7 +18,9 @@ import org.springframework.web.client.exchange
 
 @Component
 @Scope(value = ConfigurableBeanFactory.SCOPE_SINGLETON)
-class GoogleAiApiService : AbstractLlmApiService(), Logging {
+class GoogleAiApiService :
+  AbstractLlmApiService(),
+  Logging {
   override fun translate(
     params: LlmParams,
     config: LlmProviderInterface,
@@ -46,13 +47,21 @@ class GoogleAiApiService : AbstractLlmApiService(), Logging {
         request,
       )
 
+    setSentryContext(request, response)
+
     return PromptResult(
       response =
-        response.body?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+        response.body
+          ?.candidates
+          ?.firstOrNull()
+          ?.content
+          ?.parts
+          ?.firstOrNull()
+          ?.text
           ?: throw LlmEmptyResponseException(),
       usage =
         response.body?.usageMetadata?.let {
-          PromptResponseUsageDto(
+          PromptResult.Usage(
             inputTokens = it.promptTokenCount,
             outputTokens = it.candidatesTokenCount,
           )
@@ -86,7 +95,7 @@ class GoogleAiApiService : AbstractLlmApiService(), Logging {
 
     if (params.shouldOutputJson) {
       contents.add(
-        RequestContent(parts = listOf(RequestPart(text = "Strictly return only valid json!")))
+        RequestContent(parts = listOf(RequestPart(text = "Strictly return only valid json!"))),
       )
     }
 

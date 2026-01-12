@@ -4,7 +4,7 @@
 package io.tolgee.constants
 
 import com.fasterxml.jackson.annotation.JsonValue
-import java.util.*
+import java.util.Locale
 
 enum class Message {
   UNAUTHENTICATED,
@@ -307,8 +307,11 @@ enum class Message {
   SUGGESTION_CANT_BE_PLURAL,
   SUGGESTION_MUST_BE_PLURAL,
   DUPLICATE_SUGGESTION,
-
   UNSUPPORTED_MEDIA_TYPE,
+  IMPERSONATION_OF_ADMIN_BY_SUPPORTER_NOT_ALLOWED,
+  ALREADY_IMPERSONATING_USER,
+  OPERATION_NOT_PERMITTED_IN_READ_ONLY_MODE,
+  FILE_PROCESSING_FAILED,
   ;
 
   val code: String

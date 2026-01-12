@@ -10,7 +10,12 @@ import io.tolgee.model.batch.BatchJobChunkExecutionStatus
 import io.tolgee.util.Logging
 import io.tolgee.util.logger
 import io.tolgee.util.trace
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.ceil
@@ -101,7 +106,6 @@ class BatchJobConcurrentLauncher(
             return@repeatForever false
           }
 
-          logger.trace("Jobs to launch: $jobsToLaunch")
           val items =
             (1..jobsToLaunch)
               .mapNotNull { batchJobChunkExecutionQueue.poll() }
@@ -109,9 +113,10 @@ class BatchJobConcurrentLauncher(
           logItemsPulled(items)
 
           // when something handled, return true
-          items.map { executionItem ->
-            handleItem(executionItem)
-          }.any()
+          items
+            .map { executionItem ->
+              handleItem(executionItem)
+            }.any()
         }
       }
   }
@@ -166,7 +171,10 @@ class BatchJobConcurrentLauncher(
           |(there are already max concurrent executions running of this specific job)
         """.trimMargin(),
       )
-      addBackToQueue(executionItem)
+      if (!batchJobService.getJobDto(executionItem.jobId).status.completed) {
+        // e.g. job isn't canceled (check ProgressManager.trySetExecutionRunning returning false on competed job)
+        addBackToQueue(executionItem)
+      }
       return false
     }
 
@@ -258,12 +266,16 @@ class BatchJobConcurrentLauncher(
 
   private fun ExecutionQueueItem.trySetRunningState(): Boolean {
     return progressManager.trySetExecutionRunning(this.chunkExecutionId, this.jobId) {
+      val maxPerJobConcurrency = batchJobService.getJobDto(this.jobId).maxPerJobConcurrency
+      if (maxPerJobConcurrency == -1) {
+        return@trySetExecutionRunning true
+      }
       val count =
         it.values.count { executionState -> executionState.status == BatchJobChunkExecutionStatus.RUNNING }
       if (count == 0) {
         return@trySetExecutionRunning true
       }
-      batchJobService.getJobDto(this.jobId).maxPerJobConcurrency > count
+      maxPerJobConcurrency > count
     }
   }
 }

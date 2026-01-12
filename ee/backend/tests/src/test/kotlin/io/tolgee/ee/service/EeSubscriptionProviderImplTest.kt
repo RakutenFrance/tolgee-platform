@@ -17,10 +17,10 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.RestTemplate
 import kotlin.properties.Delegates
@@ -34,7 +34,7 @@ class EeSubscriptionProviderImplTest : AbstractSpringTest() {
   private lateinit var eeSubscriptionServiceImpl: EeSubscriptionServiceImpl
 
   @Autowired
-  @MockBean
+  @MockitoBean
   lateinit var restTemplate: RestTemplate
 
   @Autowired
@@ -76,7 +76,11 @@ class EeSubscriptionProviderImplTest : AbstractSpringTest() {
         waitForNotThrowing(pollTime = 100, timeout = 2000) {
           captor.allValues.assert.hasSizeGreaterThan(0)
           executeInNewTransaction {
-            eeSubscriptionRepository.findAll().single().status.assert.isEqualTo(SubscriptionStatus.ACTIVE)
+            eeSubscriptionRepository
+              .findAll()
+              .single()
+              .status.assert
+              .isEqualTo(SubscriptionStatus.ACTIVE)
           }
         }
       }
@@ -99,12 +103,13 @@ class EeSubscriptionProviderImplTest : AbstractSpringTest() {
           HttpStatus.BAD_REQUEST,
           "Bad request",
           HttpHeaders(),
-          jacksonObjectMapper().writeValueAsString(
-            ErrorResponseBody(
-              Message.LICENSE_KEY_USED_BY_ANOTHER_INSTANCE.code,
-              null,
-            ),
-          ).toByteArray(),
+          jacksonObjectMapper()
+            .writeValueAsString(
+              ErrorResponseBody(
+                Message.LICENSE_KEY_USED_BY_ANOTHER_INSTANCE.code,
+                null,
+              ),
+            ).toByteArray(),
           null,
         ),
       )
@@ -112,7 +117,9 @@ class EeSubscriptionProviderImplTest : AbstractSpringTest() {
       verify {
         waitForNotThrowing(pollTime = 100, timeout = 2000) {
           captor.allValues.assert.hasSizeGreaterThan(0)
-          eeSubscriptionRepository.findAll().single()
+          eeSubscriptionRepository
+            .findAll()
+            .single()
             .status
             .assert
             .isEqualTo(SubscriptionStatus.KEY_USED_BY_ANOTHER_INSTANCE)

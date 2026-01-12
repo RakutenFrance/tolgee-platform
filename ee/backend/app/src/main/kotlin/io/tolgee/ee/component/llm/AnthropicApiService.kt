@@ -3,7 +3,6 @@ package io.tolgee.ee.component.llm
 import io.tolgee.configuration.tolgee.machineTranslation.LlmProviderInterface
 import io.tolgee.dtos.LlmParams
 import io.tolgee.dtos.PromptResult
-import io.tolgee.dtos.response.prompt.PromptResponseUsageDto
 import io.tolgee.exceptions.LlmEmptyResponseException
 import io.tolgee.util.Logging
 import org.springframework.beans.factory.config.ConfigurableBeanFactory
@@ -18,7 +17,9 @@ import org.springframework.web.client.exchange
 
 @Component
 @Scope(value = ConfigurableBeanFactory.SCOPE_SINGLETON)
-class AnthropicApiService : AbstractLlmApiService(), Logging {
+class AnthropicApiService :
+  AbstractLlmApiService(),
+  Logging {
   override fun translate(
     params: LlmParams,
     config: LlmProviderInterface,
@@ -32,6 +33,7 @@ class AnthropicApiService : AbstractLlmApiService(), Logging {
       RequestBody(
         messages = messages,
         model = config.model,
+        max_tokens = config.maxTokens,
       )
 
     val request = HttpEntity(requestBody, headers)
@@ -43,12 +45,17 @@ class AnthropicApiService : AbstractLlmApiService(), Logging {
         request,
       )
 
+    setSentryContext(request, response)
+
     return PromptResult(
-      response.body?.content?.firstOrNull()?.text
+      response.body
+        ?.content
+        ?.firstOrNull()
+        ?.text
         ?: throw LlmEmptyResponseException(),
       usage =
         response.body?.usage?.let {
-          PromptResponseUsageDto(
+          PromptResult.Usage(
             inputTokens = it.input_tokens,
             outputTokens = it.output_tokens,
           )
@@ -93,7 +100,10 @@ class AnthropicApiService : AbstractLlmApiService(), Logging {
 
     if (params.shouldOutputJson) {
       messages.add(
-        RequestMessage(role = "user", content = "Return valid JSON and only JSON! Output message is parsed by machine!")
+        RequestMessage(
+          role = "user",
+          content = "Return valid JSON and only JSON! Output message is parsed by machine!",
+        ),
       )
     }
     return messages

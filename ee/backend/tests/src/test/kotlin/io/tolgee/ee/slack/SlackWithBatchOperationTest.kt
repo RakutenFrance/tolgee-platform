@@ -16,13 +16,13 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class SlackWithBatchOperationTest : MachineTranslationTest() {
   @Autowired
-  @MockBean
+  @MockitoBean
   lateinit var slackClient: Slack
 
   @Autowired
@@ -67,7 +67,8 @@ class SlackWithBatchOperationTest : MachineTranslationTest() {
       val requests = mockedSlackClient.chatPostMessageRequests
       requests.assert.hasSize(1)
       val sectionBlock = requests.single().blocks.first() as SectionBlock
-      sectionBlock.text.text.assert.contains("has updated 10 translations")
+      sectionBlock.text.text.assert
+        .contains("has updated 10 translations")
     }
   }
 
@@ -93,7 +94,7 @@ class SlackWithBatchOperationTest : MachineTranslationTest() {
       mockedSlackClient.chatPostMessageRequests.assert.hasSize(3)
     }
 
-		mockedSlackClient.chatUpdateRequests.assert.hasSize(0)
+    mockedSlackClient.chatUpdateRequests.assert.hasSize(0)
 
     mockedSlackClient.clearInvocations()
     performBatchOperation(keyIds)

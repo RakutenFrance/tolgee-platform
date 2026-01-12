@@ -1,6 +1,8 @@
 package io.tolgee.model.enums
 
-enum class ProjectPermissionType(val availableScopes: Array<Scope>) {
+enum class ProjectPermissionType(
+  val availableScopes: Array<Scope>,
+) {
   NONE(arrayOf()),
   VIEW(
     arrayOf(
@@ -84,12 +86,12 @@ enum class ProjectPermissionType(val availableScopes: Array<Scope>) {
 
     fun getRoles(): Map<String, Array<Scope>> {
       val result = mutableMapOf<String, Array<Scope>>()
-      values().forEach { value -> result[value.name] = expandAvailableScopes(value) }
+      entries.forEach { value -> result[value.name] = expandAvailableScopes(value) }
       return result.toMap()
     }
 
     fun findByScope(scope: Scope): List<ProjectPermissionType> {
-      return values().filter { expandAvailableScopes(it).contains(scope) }
+      return entries.filter { expandAvailableScopes(it).contains(scope) }
     }
   }
 }

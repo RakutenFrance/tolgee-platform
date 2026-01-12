@@ -18,7 +18,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
 import org.hibernate.annotations.Type
-import java.util.*
+import java.util.Date
 
 @Entity
 @Table(
@@ -29,7 +29,9 @@ import java.util.*
     Index(columnList = "debouncing_key"),
   ],
 )
-class BatchJob : StandardAuditModel(), IBatchJob {
+class BatchJob :
+  StandardAuditModel(),
+  IBatchJob {
   @ManyToOne(fetch = FetchType.LAZY, optional = true)
   var project: Project? = null
 
@@ -61,6 +63,11 @@ class BatchJob : StandardAuditModel(), IBatchJob {
 
   val chunkedTarget get() = chunkTarget(chunkSize, target)
 
+  /**
+   * The maximum number of coroutines among all tolgee instances (e.g. k8s pods). The default value is -1,
+   * which means that the concurrency is not limited.
+   * (check `BatchJobConcurrentLauncher#ExecutionQueueItem.trySetRunningState()` for more info).
+   */
   var maxPerJobConcurrency: Int = -1
 
   @Enumerated(STRING)

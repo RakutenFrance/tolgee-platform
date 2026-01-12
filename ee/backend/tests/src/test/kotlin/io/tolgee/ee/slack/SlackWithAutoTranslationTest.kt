@@ -16,13 +16,13 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class SlackWithAutoTranslationTest : MachineTranslationTest() {
   @Autowired
-  @MockBean
+  @MockitoBean
   lateinit var slackClient: Slack
 
   companion object {
@@ -79,7 +79,8 @@ class SlackWithAutoTranslationTest : MachineTranslationTest() {
   private fun assertThatActualTranslationsEqualToExpected(request: ChatPostMessageRequest) {
     val actualMap =
       request.attachments
-        .dropLast(1).associate {
+        .dropLast(1)
+        .associate {
           val keyLanguage = ((it.blocks[0] as SectionBlock).text.text).removePrefix("null ").trim()
           val keyTranslation = (it.blocks[1] as SectionBlock).text.text
           keyLanguage to keyTranslation
