@@ -102,12 +102,14 @@ class BatchJobChunkExecutionQueue(
           order by 
             case when bk.status = :runningStatus then 0 else 1 end,
             bjce.createdAt asc, 
-            bjce.executeAfter asc, 
+            bjce.executeAfter asc,
             bjce.id asc
           """.trimIndent(),
           BatchJobChunkExecutionDto::class.java,
         ).setParameter("executionStatus", BatchJobChunkExecutionStatus.PENDING)
         .setParameter("runningStatus", BatchJobStatus.RUNNING)
+        // Limit to get pending batches faster
+        .setMaxResults(batchProperties.chunkQueuePopulationSize)
         .resultList
 
     if (data.size > 0) {
