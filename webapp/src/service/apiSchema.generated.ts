@@ -4995,11 +4995,10 @@ export interface components {
       viewLanguages?: number[];
     };
     ProjectLockModel: {
-      jobInfo?: components["schemas"]["JobInfo"];
+      jobInfos: components["schemas"]["JobInfo"][];
       /** @enum {string} */
-      lockStatus: "UNLOCKED" | "UNINITIALIZED" | "LOCKED";
-      /** Format: int64 */
-      lockedJobId?: number;
+      lockStatus: "UNLOCKED" | "LOCKED";
+      lockedJobIds: number[];
       /** Format: int64 */
       projectId: number;
     };
