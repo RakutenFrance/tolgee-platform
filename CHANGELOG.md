@@ -1,3 +1,10 @@
+## [3.163.1](https://github.com/tolgee/tolgee-platform/compare/v3.163.0...v3.163.1) (2026-02-23)
+
+
+### Bug Fixes
+
+* restrict DELETE scope in removeDuplicityDescribingEntities ([#3478](https://github.com/tolgee/tolgee-platform/issues/3478)) ([1a2c50d](https://github.com/tolgee/tolgee-platform/commit/1a2c50db932867d1d3873ed50677f0cd661ca261))
+
 # [3.163.0](https://github.com/tolgee/tolgee-platform/compare/v3.162.0...v3.163.0) (2026-02-20)
 
 
