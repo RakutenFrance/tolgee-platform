@@ -42,27 +42,45 @@ class OrganizationStatsService(
 
   fun getTranslationCount(organizationId: Long): Long {
     return entityManager
-      .createQuery(
+      .createNativeQuery(
         """
-        select count(distinct k.project.id, k.name, k.namespace, t.language) from Translation t
-        join t.key k
-        join k.project p on p.deletedAt is null
-        join t.language l on l.deletedAt is null
-        where p.organizationOwner.id = :organizationId and t.text is not null and t.text <> ''
+        select count(*) from (
+          select distinct k.project_id, k.name, k.namespace_id, t.language_id
+          from translation t
+          join key k on k.id = t.key_id
+          where k.project_id in (
+            select p.id from project p
+            where p.organization_owner_id = :organizationId
+              and p.deleted_at is null
+          )
+          and exists (
+            select 1 from language l
+            where l.id = t.language_id
+              and l.deleted_at is null
+          )
+          and t.text is not null
+          and t.text <> ''
+        ) sub
         """.trimIndent(),
       ).setParameter("organizationId", organizationId)
-      .singleResult as Long
+      .singleResult
+      .let { (it as Number).toLong() }
   }
 
   fun getKeyCount(organizationId: Long): Long {
-    return entityManager
-      .createQuery(
-        """
-        select count(distinct k.project.id, k.name, k.namespace) from Key k
-        join k.project p on p.deletedAt is null
-        where p.organizationOwner.id = :organizationId
-        """.trimIndent(),
-      ).setParameter("organizationId", organizationId)
-      .singleResult as Long
+    return (
+      entityManager
+        .createNativeQuery(
+          """
+          select count(*) from (
+              select distinct k.project_id, k.name, k.namespace_id
+              from key k
+              join project p on p.id = k.project_id and p.deleted_at is null
+              where p.organization_owner_id = :organizationId
+          ) sub
+          """.trimIndent(),
+        ).setParameter("organizationId", organizationId)
+        .singleResult as Number
+    ).toLong()
   }
 }
