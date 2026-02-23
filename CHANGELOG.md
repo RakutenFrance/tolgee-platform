@@ -1,3 +1,10 @@
+## [3.163.2](https://github.com/tolgee/tolgee-platform/compare/v3.163.1...v3.163.2) (2026-02-23)
+
+
+### Bug Fixes
+
+* optimize translation/key count queries for branching ([#3485](https://github.com/tolgee/tolgee-platform/issues/3485)) ([37809f6](https://github.com/tolgee/tolgee-platform/commit/37809f60021f4df2836ab954ca31f5591de835ae))
+
 ## [3.163.1](https://github.com/tolgee/tolgee-platform/compare/v3.163.0...v3.163.1) (2026-02-23)
 
 
