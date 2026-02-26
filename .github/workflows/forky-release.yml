@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: 'Version to release'
+        required: true
+jobs:
+  main:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: adopt
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22.x"
+
+      - name: Install node modules
+        run: npm ci
+
+      - name: Run get new version
+        run: npm run release-dry
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: BootJar with version
+        run: ./gradlew bootJar
+        env:
+          VERSION: ${{ github.event.inputs.releaseVersion }}
+
+      - name: Prepare for docker build
+        run: ./gradlew dockerPrepare
+        env:
+          VERSION: ${{ github.event.inputs.releaseVersion }}
+
+      - name: Create docker image
+        env:
+          REGISTRY: "registry-dev.babel.fr"
+          IMAGE_PATH: "rakuten/tolgee"
+        run: |
+          echo ${{ secrets.REGISTRY_DEV_PASSWORD }} | docker login ${REGISTRY} -u ${{ secrets.REGISTRY_DEV_USERNAME }} --password-stdin
+          docker buildx create --use
+          # docker buildx build . -t tolgee/tolgee:${{ github.event.inputs.releaseVersion }} --platform linux/arm64,linux/amd64 --cache-from type=registry,ref=tolgee/tolgee:latest --cache-to type=inline --push
+          docker buildx build . -t ${REGISTRY}/${IMAGE_PATH}:${{ github.event.inputs.releaseVersion }} --platform linux/arm64,linux/amd64 --cache-from type=registry,ref=tolgee/tolgee:latest --cache-to type=inline --push
+          docker push ${REGISTRY}/${IMAGE_PATH}:${{ github.event.inputs.releaseVersion }}
+        working-directory: build/docker
+
+      - name: Pack with webapp
+        run: ./gradlew packResources
+        env:
+          VERSION: ${{ github.event.inputs.releaseVersion }}
