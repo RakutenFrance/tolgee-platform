@@ -1,3 +1,10 @@
+## [3.163.3](https://github.com/tolgee/tolgee-platform/compare/v3.163.2...v3.163.3) (2026-02-26)
+
+
+### Bug Fixes
+
+* sync MCP sessions to Redis for multi-replica deployments ([#3491](https://github.com/tolgee/tolgee-platform/issues/3491)) ([3f25d44](https://github.com/tolgee/tolgee-platform/commit/3f25d448c5790fbc83c89d9fec4ffadc4904dc81))
+
 ## [3.163.2](https://github.com/tolgee/tolgee-platform/compare/v3.163.1...v3.163.2) (2026-02-23)
 
 
