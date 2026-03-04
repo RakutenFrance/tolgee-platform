@@ -19,6 +19,7 @@ import io.tolgee.security.authorization.RequiresProjectPermissions
 import io.tolgee.security.authorization.UseDefaultPermissions
 import io.tolgee.service.key.KeyService
 import io.tolgee.service.language.LanguageService
+import io.tolgee.service.project.ProjectService
 import io.tolgee.service.security.SecurityService
 import io.tolgee.service.translation.TranslationMemoryService
 import io.tolgee.util.disableAccelBuffering
@@ -44,6 +45,7 @@ class TranslationSuggestionController(
   private val projectHolder: ProjectHolder,
   private val languageService: LanguageService,
   private val keyService: KeyService,
+  private val projectService: ProjectService,
   private val translationMemoryService: TranslationMemoryService,
   private val translationMemoryItemModelAssembler: TranslationMemoryItemModelAssembler,
   @Suppress("SpringJavaInjectionPointsAutowiringInspection")

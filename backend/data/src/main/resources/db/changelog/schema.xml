@@ -5088,4 +5088,19 @@
             <sql>drop index concurrently if exists idx_key_project_name_namespace;</sql>
         </rollback>
     </changeSet>
+    <changeSet author="jb-petit" id="1772638503000-1" runInTransaction="false">
+        <sql>CREATE EXTENSION IF NOT EXISTS btree_gist;</sql>
+        <sql>
+            CREATE INDEX CONCURRENTLY IF NOT EXISTS translation_language_id_idx
+            ON translation (language_id);
+        </sql>
+        <sql>
+            CREATE INDEX CONCURRENTLY IF NOT EXISTS translation_lang_text_gist_trgm
+            ON translation USING GIST (language_id, text gist_trgm_ops);
+        </sql>
+        <rollback>
+            <sql>DROP INDEX CONCURRENTLY IF EXISTS translation_lang_text_gist_trgm;</sql>
+            <sql>DROP INDEX CONCURRENTLY IF EXISTS translation_language_id_idx;</sql>
+        </rollback>
+    </changeSet>
 </databaseChangeLog>

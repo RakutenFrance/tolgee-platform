@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 
 @Service
@@ -54,6 +55,62 @@ class TranslationMemoryService(
     val (count, data) =
       getSuggestionsData(baseTranslationText, isPlural, keyId, targetLanguage, pageable.offset, pageable.pageSize)
     return PageImpl(data, pageable, count)
+  }
+
+  // REQUIRES_NEW is intentional: isolates the SET LOCAL PostgreSQL settings (statement_timeout and
+  // pg_trgm.similarity_threshold) so they don't leak into the caller's transaction. It also ensures
+  // that a QueryTimeoutException does not mark the outer transaction as rollback-only.
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  fun getSuggestionsList(
+    baseTranslationText: String,
+    isPlural: Boolean,
+    keyId: Long? = null,
+    baseLanguageId: Long,
+    targetLanguage: LanguageDto,
+    limit: Int = 5,
+  ): List<TranslationMemoryItemView> {
+    entityManager.createNativeQuery("set local statement_timeout to '350ms'").executeUpdate()
+    entityManager.createNativeQuery("set local pg_trgm.similarity_threshold to 0.5").executeUpdate()
+    val queryResult =
+      entityManager
+        .createNativeQuery(
+          """
+          select target.text as targetTranslationText, baseTranslation.text as baseTranslationText,
+                 key.name as keyName, ns.name as keyNamespace, key.id as keyId,
+                 similarity(baseTranslation.text, :baseTranslationText) as similarity
+          from translation baseTranslation
+                   join key on baseTranslation.key_id = key.id
+                   left join namespace ns on key.namespace_id = ns.id
+                   join translation target on
+                       target.key_id = key.id and
+                       target.language_id = :targetLanguageId and
+                       target.text <> '' and
+                       target.text is not null
+          where baseTranslation.language_id = :baseLanguageId
+            and (cast(:key as bigint) is null or key.id <> :key)
+            and key.is_plural = :isPlural
+            and baseTranslation.text % :baseTranslationText
+          limit :limit
+          """,
+        ).setParameter("baseTranslationText", baseTranslationText)
+        .setParameter("isPlural", isPlural)
+        .setParameter("key", keyId)
+        .setParameter("baseLanguageId", baseLanguageId)
+        .setParameter("targetLanguageId", targetLanguage.id)
+        .setParameter("limit", limit)
+        .resultList
+
+    return queryResult.map {
+      it as Array<*>
+      TranslationMemoryItemView(
+        targetTranslationText = it[0] as String,
+        baseTranslationText = it[1] as String,
+        keyName = it[2] as String,
+        keyNamespace = it[3] as String?,
+        keyId = it[4] as Long,
+        similarity = it[5] as Float,
+      )
+    }
   }
 
   @Transactional
