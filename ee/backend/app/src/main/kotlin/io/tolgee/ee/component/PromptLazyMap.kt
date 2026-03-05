@@ -24,7 +24,12 @@ class PromptLazyMap : AbstractMap<String, Any?>() {
       return lazyMap
     }
 
-    val stringValue = promptValue?.lazyValue?.let { it() } ?: promptValue?.value
+    val stringValue = promptValue?.lazyValue?.let {
+      val result = it()
+      promptValue.value = result
+      promptValue.lazyValue = null
+      result
+    } ?: promptValue?.value
     return stringValue?.let { if (it is String) Handlebars.SafeString(it) else it }
   }
 
