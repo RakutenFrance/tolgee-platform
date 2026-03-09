@@ -54,4 +54,12 @@ class BatchProperties {
     defaultExplanation = "30 seconds",
   )
   var cancellationTimeoutMs: Long = 30000
+
+  @DocProperty(
+    description =
+      "Maximum number of pending batch job chunk executions to load into the in-memory queue " +
+        "on each scheduled populate run. Limits CPU and memory usage when the queue grows large.",
+    defaultValue = "500",
+  )
+  var queuePopulateLimit: Int = 500
 }
