@@ -90,7 +90,8 @@ interface TranslationRepository : JpaRepository<Translation, Long> {
         from Translation t 
         join fetch t.key k 
         left join k.branch b
-        left join fetch k.keyMeta 
+        left join fetch k.namespace
+        left join fetch k.keyMeta
         where t.language.id = :languageId
         and ((b.name = :branch and b.deletedAt is null) or (:branch is null and (b is null or b.isDefault))) 
     """,
