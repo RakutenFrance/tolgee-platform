@@ -33,7 +33,7 @@
     "@storybook/addon-a11y": "^10.1.5",
     "@storybook/addon-docs": "^10.1.5",
     "@storybook/addon-themes": "^10.1.5",
-    "@storybook/react-vite": "^10.1.5",
+    "@storybook/react-vite": "^10.6.0",
     "@tginternal/language-util": "^1.1.1",
     "@tolgee/react": "^6.2.7",
     "@tolgee/storybook-addon": "file:../storybook-tolgee-addon",
